@@ -133,9 +133,3 @@ class Searcher:
         print(f"[Searcher] Found {len(unique_results)} unique papers.")
         return unique_results
 
-if __name__ == "__main__":
-    # Test
-    s = Searcher()
-    results = s.search_all("LLM for code generation", limit_per_source=2)
-    for i, r in enumerate(results):
-        print(f"{i+1}. [{r['source']}] {r['title']} ({r['year']})")

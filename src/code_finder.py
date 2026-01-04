@@ -87,11 +87,3 @@ class CodeFinder:
             
         return results
 
-if __name__ == "__main__":
-    cf = CodeFinder()
-    # Test with a known paper that has code
-    title = "Attention Is All You Need"
-    print(f"Searching code for: {title}")
-    repos = cf.find_code(title)
-    for r in repos:
-        print(f"- [{r['stars']} stars] {r['repo_name']}: {r['url']}")

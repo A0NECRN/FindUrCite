@@ -6,6 +6,7 @@ from analyzer import Analyzer
 from code_finder import CodeFinder
 import time
 from pdf_processor import PDFProcessor
+import concurrent.futures
 
 def generate_report(user_input, results, output_dir, filename="research_result.md"):
     report_path = os.path.join(output_dir, filename)
@@ -32,7 +33,7 @@ def generate_report(user_input, results, output_dir, filename="research_result.m
             "数据集", "其他", "原文佐证 (Evidence)"
         ]
         
-        f.write("| " + " | ".join(headers) + " |\n")
+        f.write("| " + " | ".join([h.replace('\n', '<br>') for h in headers]) + " |\n")
         f.write("| " + " | ".join(["---"] * len(headers)) + " |\n")
         
         for i, item in enumerate(results):

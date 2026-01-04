@@ -16,7 +16,8 @@ FindUrCite is an automated tool designed to help researchers automatically find 
 3.  **Intelligent Relevance Analysis**: Automatically analyzes abstracts to evaluate support/relevance against your viewpoint with **strict anti-hallucination** rules.
 4.  **Open-Source Project Discovery**: Automatically searches **GitHub** for relevant code implementations and benchmarks.
 5.  **Privacy & Security**: All deep analysis runs locally via Ollama, ensuring your research ideas stay private.
-6.  **Comprehensive Reports**: Generates a detailed 21-column Markdown report including problem definitions, methodologies, algorithm pseudocode, and limitations.
+6. 19. **Comprehensive Reports**: Generates a detailed 23-column Markdown report including problem definitions, methodologies, algorithm pseudocode, and limitations.
+20. **Deep Read Pipeline**: Automatically downloads PDFs for high-relevance papers and performs full-text analysis for evidence-based insights.
 
 ### 🚀 Installation & Usage
 
@@ -46,6 +47,7 @@ The system generates a Markdown report (e.g., `research_result.md`) containing:
     -   `searcher.py`: Literature retrieval (Semantic Scholar & ArXiv)
     -   `analyzer.py`: LLM Analysis & Input Processing
     -   `code_finder.py`: GitHub code search (Parallel execution)
+    -   `pdf_processor.py`: PDF download and text extraction
     -   `main.py`: Main workflow and report generation
 -   `run_system.bat`: One-click startup script for Windows
 -   `requirements.txt`: Python dependencies
@@ -63,7 +65,8 @@ FindUrCite 这是一个自动化工具，旨在帮助研究人员根据研究观
 3.  **智能相关性分析**：自动阅读摘要，分析文献是否支持您的观点，并遵循**严格的反幻觉**指令。
 4.  **对标项目查找**：自动在 **GitHub** 查找相关的开源实现和对标项目。
 5.  **隐私安全**：核心分析任务在本地通过 Ollama 运行，您的研究思路不会上传到云端。
-6.  **详尽分析报告**：生成包含 21 个维度的详尽 Markdown 报告，涵盖问题数学定义、方法瓶颈、算法伪代码、缺陷分析等。
+6.  **详尽分析报告**：生成包含 23 个维度的详尽 Markdown 报告，涵盖问题数学定义、方法瓶颈、算法伪代码、缺陷分析等。
+7.  **深度阅读管线 (Deep Read Pipeline)**：对高相关性论文自动下载 PDF 并提取全文进行深度分析，提供原文佐证。
 
 ### 🚀 安装与使用
 

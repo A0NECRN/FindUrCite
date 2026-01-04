@@ -12,7 +12,6 @@ class Analyzer:
         """
         Analyze user's input text (draft or idea) to extract core contributions, viewpoints, and keywords.
         """
-        # ... (rest of the method remains same)
         prompt = f"""
         You are a research assistant. The user has provided a draft text or a description of their research.
         
@@ -185,15 +184,3 @@ class Analyzer:
         }
 
 
-if __name__ == "__main__":
-    # Test
-    analyzer = Analyzer()
-    text = "I believe large language models can significantly improve software engineering productivity."
-    print("Keywords:", analyzer.extract_keywords(text))
-    
-    res = analyzer.analyze_relevance(
-        text, 
-        "Large Language Models for Software Engineering: A Systematic Literature Review",
-        "This paper reviews the impact of LLMs on SE, finding significant productivity gains in coding tasks."
-    )
-    print("Analysis:", json.dumps(res, indent=2))

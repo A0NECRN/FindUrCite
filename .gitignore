@@ -6,6 +6,10 @@ __pycache__/
 research_result*.md
 test_*.md
 research_report.md
+research_output_*/
+downloads/
+analysis_cache.json
+*.md_test
 .venv/
 venv/
 env/
