@@ -133,3 +133,25 @@ class Searcher:
         print(f"[Searcher] Found {len(unique_results)} unique papers.")
         return unique_results
 
+    def search_multiple_queries(self, queries, limit_per_source=5):
+        """
+        Execute multiple search queries and aggregate unique results.
+        """
+        final_results = []
+        seen_titles = set()
+        
+        print(f"[Searcher] Executing {len(queries)} queries...")
+        
+        for q in queries:
+            # We reuse search_all for each query
+            results = self.search_all(q, limit_per_source=limit_per_source)
+            for res in results:
+                normalized_title = res['title'].lower().strip()
+                # Basic fuzzy check could be better, but exact lower string match is safe for now
+                if normalized_title not in seen_titles:
+                    seen_titles.add(normalized_title)
+                    final_results.append(res)
+        
+        print(f"[Searcher] Total aggregated unique papers from all queries: {len(final_results)}")
+        return final_results
+

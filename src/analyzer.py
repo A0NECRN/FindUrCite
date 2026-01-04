@@ -10,7 +10,7 @@ class Analyzer:
 
     def analyze_user_input(self, text):
         """
-        Analyze user's input text (draft or idea) to extract core contributions, viewpoints, and keywords.
+        Analyze user's input text (draft or idea) to extract core contributions, viewpoints, and multiple search queries.
         """
         prompt = f"""
         You are a research assistant. The user has provided a draft text or a description of their research.
@@ -20,14 +20,16 @@ class Analyzer:
         
         Your task:
         1. Summarize the **Core Contribution** or **Main Idea** of this text (1 sentence).
-        2. Extract 3-5 **Specific Search Keywords** that would help find related academic papers. 
-           (Focus on technical terms, methods, and problems).
+        2. Generate 3 **Distinct Search Queries** (strings) to find relevant academic papers:
+           - Query 1: Broad topic keywords.
+           - Query 2: Specific problem/method keywords.
+           - Query 3: Alternative terminology or related sub-field keywords.
         3. Identify the **Key Viewpoint** or **Research Question** that needs citation support.
         
         Output JSON only:
         {{
             "core_contribution": "...",
-            "search_keywords": ["keyword1", "keyword2", ...],
+            "search_queries": ["query1", "query2", "query3"],
             "key_viewpoint": "..."
         }}
         """
@@ -43,7 +45,7 @@ class Analyzer:
             # Fallback
             return {
                 "core_contribution": text[:100],
-                "search_keywords": text.split()[:5],
+                "search_queries": [text[:50]],
                 "key_viewpoint": text[:100]
             }
 
@@ -52,10 +54,8 @@ class Analyzer:
         Analyze the full text of the paper.
         This provides a deeper analysis with evidence quotes.
         """
-        # Truncate to avoid context overflow (approx 20k chars ~ 5k tokens, safe for 8k+ context)
-        # We prioritize the beginning (Intro, Method) and maybe the end (Conclusion)
-        # But for simplicity, let's take the first 20000 chars.
-        truncated_text = full_text[:20000]
+        # Truncate to avoid context overflow (approx 30k chars, increasing for better coverage)
+        truncated_text = full_text[:30000]
         
         prompt = f"""
         You are a meticulous academic reviewer. You have access to the full text of the paper.
@@ -70,22 +70,23 @@ class Analyzer:
         ...[End of Input]...
         
         **Task:**
-        Perform a deep analysis. For every major claim, you MUST provide a direct quote (or close paraphrase) from the text as evidence.
+        Perform a rigorous deep analysis. You must be factual and avoid hallucination.
+        For every major claim (Method, Experiment, Defect), you MUST strictly infer from the provided text.
         
-        **REQUIRED FIELDS:**
-        1. "relevance_score": Integer 1-5.
-        2. "match_reasoning": Detailed explanation of why this paper fits the user context.
-        3. "sub_field": Specific sub-field.
-        4. "problem_def": Problem definition.
-        5. "methodology": Method details (how it works).
-        6. "method_keywords": Key technical terms.
-        7. "algorithm_summary": Step-by-step flow or pseudocode.
-        8. "experiments": Experiment details (datasets, baselines, results).
-        9. "limitations": Explicitly stated limitations or your inferred ones.
-        10. "critique": Critical evaluation (strengths/weaknesses).
-        11. "datasets": Specific datasets used.
-        12. "others": Other notes.
-        13. "evidence_quotes": A list of 3-5 key sentences verbatim from the text that support your analysis.
+        **REQUIRED FIELDS (Strict Output):**
+        1. "relevance_score": Integer 1-5 (5 = Highly relevant to user context).
+        2. "match_reasoning": detailed explanation of why this paper fits the user context.
+        3. "sub_field": Specific sub-field (e.g., 'Code LLM', 'RAG').
+        4. "problem_def": What problem does it solve? + Mathematical/Formal definition if available.
+        5. "methodology": How did they solve the bottleneck? What is the core method?
+        6. "method_keywords": List of technical terms (e.g., 'AST', 'Contrastive Learning').
+        7. "algorithm_summary": Step-by-step flow or pseudocode summary.
+        8. "experiments": Datasets used, Baselines compared, and Main Results (Superiority).
+        9. "limitations": Explicitly stated limitations in the text.
+        10. "critique": Your critical evaluation (Strengths, Weaknesses, Reproducibility).
+        11. "datasets": Specific dataset names mentioned.
+        12. "others": Other notes (e.g., unique insights).
+        13. "evidence_quotes": A list of 3-5 verbatim sentences from the text that support your analysis of Method and Experiments.
         
         Output JSON only. Ensure all keys exist.
         """
@@ -148,6 +149,7 @@ class Analyzer:
         10. "critique": Improvements, reproduction difficulty, overall evaluation. Corresponding to "阅读者评价".
         11. "datasets": Specific datasets mentioned (e.g., HumanEval, MBPP). Corresponding to "数据集".
         12. "others": Any other important notes (e.g., "Best Paper Award"). Corresponding to "其他".
+        13. "evidence_quotes": List of 1-2 verbatim sentences from the abstract that support the core claim.
 
         Output JSON only. Ensure all keys exist.
         """
@@ -180,7 +182,8 @@ class Analyzer:
             "limitations": reason,
             "critique": reason,
             "datasets": reason,
-            "others": reason
+            "others": reason,
+            "evidence_quotes": []
         }
 
 

@@ -142,18 +142,25 @@ def main():
     input_analysis = analyzer.analyze_user_input(user_text)
     
     core_contribution = input_analysis.get('core_contribution', 'N/A')
-    search_keywords = input_analysis.get('search_keywords', [])
+    # Support both new 'search_queries' and old 'search_keywords' for backward compatibility
+    search_queries = input_analysis.get('search_queries', [])
+    if not search_queries:
+        keywords = input_analysis.get('search_keywords', [])
+        if keywords:
+            search_queries = [" ".join(keywords[:4])]
+        else:
+            search_queries = [user_text[:50]]
+            
     key_viewpoint = input_analysis.get('key_viewpoint', user_text[:100])
     
     print(f"  - Core Contribution: {core_contribution}")
-    print(f"  - Keywords: {search_keywords}")
+    print(f"  - Generated Search Queries: {search_queries}")
     print(f"  - Key Viewpoint: {key_viewpoint}")
     
     # Step 2: Search Papers
-    print("Step 2: Searching papers...")
-    search_query = " ".join(search_keywords[:4]) # Use top 4 keywords
-    print(f"  - Search Query: {search_query}")
-    papers = searcher.search_all(search_query, limit_per_source=3)
+    print("Step 2: Searching papers (Expanded Scope)...")
+    # Using search_multiple_queries with higher limit (5 per source * 2 sources * 3 queries ~ 30 papers max)
+    papers = searcher.search_multiple_queries(search_queries, limit_per_source=5)
     
     if not papers:
         print("No papers found.")
