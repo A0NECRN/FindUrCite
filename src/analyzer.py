@@ -1,15 +1,18 @@
 import ollama
 import json
+from cache import AnalysisCache
 
 class Analyzer:
     def __init__(self, model="qwen2.5:7b"):
         self.model = model
+        self.cache = AnalysisCache()
         # Removed check_model call to avoid error if method was removed
 
     def analyze_user_input(self, text):
         """
         Analyze user's input text (draft or idea) to extract core contributions, viewpoints, and keywords.
         """
+        # ... (rest of the method remains same)
         prompt = f"""
         You are a research assistant. The user has provided a draft text or a description of their research.
         
@@ -48,7 +51,18 @@ class Analyzer:
     def analyze_paper_details(self, user_viewpoint, paper):
         """
         Perform a comprehensive analysis to extract fields required by the Excel format.
+        Checks cache first to avoid re-running LLM.
         """
+        abstract = paper.get('abstract', '')
+        if not abstract:
+            return self._get_empty_analysis("No abstract available")
+
+        # Check Cache
+        cached_result = self.cache.get(user_viewpoint, abstract)
+        if cached_result:
+            print(f"[Analyzer] Cache Hit for: {paper.get('title')[:30]}...")
+            return cached_result
+
         prompt = f"""
         You are a rigorous academic research assistant. Your goal is to analyze the provided paper abstract accurately.
         
@@ -59,7 +73,7 @@ class Analyzer:
         
         **PAPER INFORMATION:**
         - Title: "{paper.get('title')}"
-        - Abstract: "{paper.get('abstract')}"
+        - Abstract: "{abstract}"
         - Venue: "{paper.get('venue')}"
         - Year: "{paper.get('year')}"
         
@@ -84,22 +98,31 @@ class Analyzer:
                 {'role': 'user', 'content': prompt},
             ], format='json')
             content = response['message']['content']
-            return json.loads(content)
+            result = json.loads(content)
+            
+            # Save to Cache
+            self.cache.set(user_viewpoint, abstract, result)
+            
+            return result
         except Exception as e:
             print(f"[Analyzer] Detailed Analysis Error: {e}")
-            return {
-                "relevance_score": 0,
-                "sub_field": "Error",
-                "problem_def": "Error",
-                "methodology": "Error",
-                "method_keywords": "Error",
-                "algorithm_summary": "Error",
-                "experiments": "Error",
-                "limitations": "Error",
-                "critique": "Error",
-                "datasets": "Error",
-                "others": "Error"
-            }
+            return self._get_empty_analysis("Error during analysis")
+
+    def _get_empty_analysis(self, reason="Error"):
+        return {
+            "relevance_score": 0,
+            "sub_field": reason,
+            "problem_def": reason,
+            "methodology": reason,
+            "method_keywords": reason,
+            "algorithm_summary": reason,
+            "experiments": reason,
+            "limitations": reason,
+            "critique": reason,
+            "datasets": reason,
+            "others": reason
+        }
+
 
 if __name__ == "__main__":
     # Test

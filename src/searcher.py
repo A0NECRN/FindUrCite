@@ -2,6 +2,7 @@ import requests
 import time
 import feedparser
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 
 class Searcher:
     def __init__(self):
@@ -110,8 +111,13 @@ class Searcher:
 
     def search_all(self, query, limit_per_source=5):
         print(f"[Searcher] Searching for: {query}")
-        ss_results = self.search_semantic_scholar(query, limit=limit_per_source)
-        arxiv_results = self.search_arxiv(query, limit=limit_per_source)
+        
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_ss = executor.submit(self.search_semantic_scholar, query, limit=limit_per_source)
+            future_arxiv = executor.submit(self.search_arxiv, query, limit=limit_per_source)
+            
+            ss_results = future_ss.result()
+            arxiv_results = future_arxiv.result()
         
         # Merge and dedup (simple dedup by title)
         all_results = ss_results + arxiv_results
