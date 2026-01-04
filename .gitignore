@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+research_result*.md
+test_*.md
+research_report.md
+.venv/
+venv/
+env/
+.env
+.vscode/
+.idea/
