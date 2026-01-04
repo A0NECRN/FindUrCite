@@ -18,7 +18,7 @@ def generate_report(user_input, results, filename="research_result.md"):
 
         # Table Header based on Excel Format (21 columns)
         headers = [
-            "序号", "竞品/关键 paper 题目", "年份", "等级\n(1-5，5最优)", "关键词", 
+            "序号", "竞品/关键 paper 题目", "年份", "等级\n(1-5，5最优)", "契合度分析", "关键词", 
             "发表期刊/会议，等级", "作者信息", "单位信息", "细分领域", "链接", "PDF",
             "解决了什么问题 + 问题数学定义", 
             "解决了什么瓶颈问题？用的什么方法？", 
@@ -69,6 +69,7 @@ def generate_report(user_input, results, filename="research_result.md"):
                 clean(p.get('title', 'N/A')),
                 str(p.get('year', 'N/A')),
                 str(a.get('relevance_score', 0)),
+                clean(a.get('match_reasoning', 'N/A')),
                 clean(", ".join(p.get('keywords', [])[:3]) if p.get('keywords') else "N/A"),
                 clean(p.get('venue', 'N/A')), 
                 clean(authors_str),

@@ -23,7 +23,7 @@ class Analyzer:
         1. Summarize the **Core Contribution** or **Main Idea** of this text (1 sentence).
         2. Extract 3-5 **Specific Search Keywords** that would help find related academic papers. 
            (Focus on technical terms, methods, and problems).
-        3. Identify the **Key Viewpoint** that needs citation support.
+        3. Identify the **Key Viewpoint** or **Research Question** that needs citation support.
         
         Output JSON only:
         {{
@@ -64,12 +64,13 @@ class Analyzer:
             return cached_result
 
         prompt = f"""
-        You are a rigorous academic research assistant. Your goal is to analyze the provided paper abstract accurately.
+        You are a rigorous academic research assistant. Your goal is to analyze the provided paper abstract accurately and evaluate its fit with the user's research context.
         
         **STRICT RULES:**
         1. **NO HALLUCINATION:** If information is not in the abstract or metadata, you MUST output "Not mentioned". Do NOT invent methods, numbers, or facts.
         2. **STRICT FORMAT:** Output pure JSON.
-        3. **USER VIEWPOINT:** Analyze how this paper relates to the user's viewpoint: "{user_viewpoint}"
+        3. **USER CONTEXT:** 
+           {user_viewpoint}
         
         **PAPER INFORMATION:**
         - Title: "{paper.get('title')}"
@@ -78,17 +79,23 @@ class Analyzer:
         - Year: "{paper.get('year')}"
         
         **REQUIRED FIELDS (Extract or Infer carefully):**
-        1. "relevance_score": Integer 1-5 (5 is best). Corresponding to "等级".
-        2. "sub_field": The specific sub-field (e.g., "RAG", "Code Generation"). Corresponding to "细分领域".
-        3. "problem_def": What problem is solved? Include math definition if available. Corresponding to "解决了什么问题 + 问题数学定义".
-        4. "methodology": What bottleneck is solved? What method is used? Corresponding to "解决了什么瓶颈问题？用的什么方法？".
-        5. "method_keywords": Key technical terms. Corresponding to "方法关键词".
-        6. "algorithm_summary": Step-by-step flow or pseudocode. Corresponding to "算法流程".
-        7. "experiments": Setup, baselines, and metrics showing superiority. Corresponding to "实验设置".
-        8. "limitations": Specific flaws we can address (paving the way for our work). Corresponding to "缺陷".
-        9. "critique": Improvements, reproduction difficulty, overall evaluation. Corresponding to "阅读者评价".
-        10. "datasets": Specific datasets mentioned (e.g., HumanEval, MBPP). Corresponding to "数据集".
-        11. "others": Any other important notes (e.g., "Best Paper Award"). Corresponding to "其他".
+        1. "relevance_score": Integer 1-5 (5 is best). 
+           - 5: Strongly supports/matches the user's specific viewpoint/problem.
+           - 4: Relevant method or problem, supports general direction.
+           - 3: Same field but different focus.
+           - 2: Weak connection.
+           - 1: Irrelevant.
+        2. "match_reasoning": Explain WHY this paper fits (or doesn't fit) the User Context. Corresponding to "契合度分析".
+        3. "sub_field": The specific sub-field (e.g., "RAG", "Code Generation"). Corresponding to "细分领域".
+        4. "problem_def": What problem is solved? Include math definition if available. Corresponding to "解决了什么问题 + 问题数学定义".
+        5. "methodology": What bottleneck is solved? What method is used? Corresponding to "解决了什么瓶颈问题？用的什么方法？".
+        6. "method_keywords": Key technical terms. Corresponding to "方法关键词".
+        7. "algorithm_summary": Step-by-step flow or pseudocode. Corresponding to "算法流程".
+        8. "experiments": Setup, baselines, and metrics showing superiority. Corresponding to "实验设置".
+        9. "limitations": Specific flaws we can address (paving the way for our work). Corresponding to "缺陷".
+        10. "critique": Improvements, reproduction difficulty, overall evaluation. Corresponding to "阅读者评价".
+        11. "datasets": Specific datasets mentioned (e.g., HumanEval, MBPP). Corresponding to "数据集".
+        12. "others": Any other important notes (e.g., "Best Paper Award"). Corresponding to "其他".
 
         Output JSON only. Ensure all keys exist.
         """
@@ -111,6 +118,7 @@ class Analyzer:
     def _get_empty_analysis(self, reason="Error"):
         return {
             "relevance_score": 0,
+            "match_reasoning": reason,
             "sub_field": reason,
             "problem_def": reason,
             "methodology": reason,
