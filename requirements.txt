@@ -3,3 +3,4 @@ ollama
 feedparser
 beautifulsoup4
 markdown
+PyMuPDF

@@ -48,6 +48,59 @@ class Analyzer:
                 "key_viewpoint": text[:100]
             }
 
+    def analyze_full_paper(self, user_viewpoint, paper, full_text):
+        """
+        Analyze the full text of the paper.
+        This provides a deeper analysis with evidence quotes.
+        """
+        # Truncate to avoid context overflow (approx 20k chars ~ 5k tokens, safe for 8k+ context)
+        # We prioritize the beginning (Intro, Method) and maybe the end (Conclusion)
+        # But for simplicity, let's take the first 20000 chars.
+        truncated_text = full_text[:20000]
+        
+        prompt = f"""
+        You are a meticulous academic reviewer. You have access to the full text of the paper.
+        
+        **User Context / Research Goal:**
+        {user_viewpoint}
+        
+        **Paper Title:** {paper.get('title')}
+        
+        **Paper Content (Truncated):**
+        {truncated_text}
+        ...[End of Input]...
+        
+        **Task:**
+        Perform a deep analysis. For every major claim, you MUST provide a direct quote (or close paraphrase) from the text as evidence.
+        
+        **REQUIRED FIELDS:**
+        1. "relevance_score": Integer 1-5.
+        2. "match_reasoning": Detailed explanation of why this paper fits the user context.
+        3. "sub_field": Specific sub-field.
+        4. "problem_def": Problem definition.
+        5. "methodology": Method details (how it works).
+        6. "method_keywords": Key technical terms.
+        7. "algorithm_summary": Step-by-step flow or pseudocode.
+        8. "experiments": Experiment details (datasets, baselines, results).
+        9. "limitations": Explicitly stated limitations or your inferred ones.
+        10. "critique": Critical evaluation (strengths/weaknesses).
+        11. "datasets": Specific datasets used.
+        12. "others": Other notes.
+        13. "evidence_quotes": A list of 3-5 key sentences verbatim from the text that support your analysis.
+        
+        Output JSON only. Ensure all keys exist.
+        """
+        
+        try:
+            response = ollama.chat(model=self.model, messages=[
+                {'role': 'user', 'content': prompt},
+            ], format='json')
+            content = response['message']['content']
+            return json.loads(content)
+        except Exception as e:
+            print(f"[Analyzer] Full Text Analysis Error: {e}")
+            return self._get_empty_analysis(f"Error analyzing full text: {str(e)}")
+
     def analyze_paper_details(self, user_viewpoint, paper):
         """
         Perform a comprehensive analysis to extract fields required by the Excel format.
@@ -60,7 +113,7 @@ class Analyzer:
         # Check Cache
         cached_result = self.cache.get(user_viewpoint, abstract)
         if cached_result:
-            print(f"[Analyzer] Cache Hit for: {paper.get('title')[:30]}...")
+            print(f"[Analyzer] Cache Hit for: {paper.get('title', '')[:30]}...")
             return cached_result
 
         prompt = f"""
