@@ -164,8 +164,8 @@ def main():
     paper_titles = [p['title'] for p in papers]
     code_results = code_finder.find_codes_parallel(paper_titles)
 
-    # Step 4: Analyze Papers (Optimized Deep Read Pipeline)
-    print("Step 4: Analyzing papers (Optimized Deep Read Pipeline)...")
+    # Step 4: Analyze Papers (Deep Read Pipeline)
+    print("Step 4: Analyzing papers (Deep Read Pipeline)...")
     
     # Create workspace folder early to store PDFs
     timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -177,78 +177,74 @@ def main():
     # Configure PDF processor to use workspace
     pdf_processor.set_download_dir(os.path.join(workspace_path, "pdfs"))
     
-    # 4a. Initial Abstract Analysis (Sequential LLM)
-    print("  - Phase 4a: Analyzing Abstracts...")
-    abstract_results = []
-    high_relevance_candidates = []
+    final_results = []
+    
+    # 4a. Phase 1: Abstract Analysis (Sequential/Fast)
+    print("  -> Phase 1: Screening Abstracts...")
+    candidates_for_deep_read = []
     
     for i, paper in enumerate(papers):
-        print(f"    [{i+1}/{len(papers)}] {paper['title'][:50]}...")
+        print(f"    [{i+1}/{len(papers)}] Screening: {paper['title'][:30]}...")
         analysis = analyzer.analyze_paper_details(key_viewpoint, paper)
         relevance = analysis.get('relevance_score', 0)
         
         item = {
             'paper': paper,
             'analysis': analysis,
-            'relevance': relevance,
-            'codes': code_results.get(paper['title'], []),
-            'full_text': None
+            'codes': code_results.get(paper['title'], [])
         }
-        abstract_results.append(item)
         
         if relevance >= 4:
-            # Prepare for download
-            pdf_url = None
-            if paper.get('openAccessPdf'):
-                pdf_url = paper.get('openAccessPdf', {}).get('url')
-            elif paper.get('url') and "arxiv.org/abs" in paper.get('url'):
-                pdf_url = paper.get('url').replace('abs', 'pdf')
+             candidates_for_deep_read.append(item)
+        else:
+             final_results.append(item)
+
+    # 4b. Phase 2: Parallel PDF Download & Text Extraction
+    print(f"  -> Phase 2: Deep Reading {len(candidates_for_deep_read)} candidates (Parallel IO)...")
+    
+    def process_pdf_candidate(item):
+        paper = item['paper']
+        pdf_url = None
+        if paper.get('openAccessPdf'):
+            pdf_url = paper.get('openAccessPdf', {}).get('url')
+        elif paper.get('url') and "arxiv.org/abs" in paper.get('url'):
+            pdf_url = paper.get('url').replace('abs', 'pdf')
             
-            if pdf_url:
-                high_relevance_candidates.append((item, pdf_url))
+        full_text = None
+        if pdf_url:
+            try:
+                # Use a thread-safe print or just let it interleave
+                # print(f"      -> Downloading: {paper['title'][:20]}...") 
+                pdf_path = pdf_processor.download_pdf(pdf_url)
+                if pdf_path:
+                    full_text = pdf_processor.extract_text(pdf_path, max_pages=15)
+            except Exception as e:
+                print(f"      -> Error processing {paper['title'][:20]}: {e}")
+        
+        return item, full_text
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_item = {executor.submit(process_pdf_candidate, item): item for item in candidates_for_deep_read}
+        
+        processed_candidates = []
+        for future in concurrent.futures.as_completed(future_to_item):
+            item, text = future.result()
+            if text and len(text) > 1000:
+                item['full_text'] = text
+                print(f"      -> Extracted {len(text)} chars for: {item['paper']['title'][:30]}")
             else:
-                print(f"      -> High relevance ({relevance}) but no PDF URL.")
+                print(f"      -> Failed to extract text for: {item['paper']['title'][:30]}")
+            processed_candidates.append(item)
 
-    # 4b. Parallel Download & Extract
-    if high_relevance_candidates:
-        print(f"  - Phase 4b: Downloading & Extracting PDFs for {len(high_relevance_candidates)} papers (Parallel)...")
-        
-        def process_pdf(candidate):
-            item_ref, url = candidate
-            pdf_path = pdf_processor.download_pdf(url)
-            text = ""
-            if pdf_path:
-                text = pdf_processor.extract_text(pdf_path, max_pages=15)
-            return item_ref, text
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_item = {executor.submit(process_pdf, cand): cand for cand in high_relevance_candidates}
-            for future in concurrent.futures.as_completed(future_to_item):
-                try:
-                    processed_item, text = future.result()
-                    if text and len(text) > 1000:
-                        processed_item['full_text'] = text
-                        print(f"      -> Extracted {len(text)} chars for: {processed_item['paper']['title'][:30]}")
-                    else:
-                         print(f"      -> Failed to extract text for: {processed_item['paper']['title'][:30]}")
-                except Exception as e:
-                    print(f"      -> Error processing PDF: {e}")
-
-    # 4c. Full Text Analysis (Sequential LLM)
-    print("  - Phase 4c: Performing Full Text Analysis...")
-    final_results = []
-    for item in abstract_results:
-        if item.get('full_text'):
-            print(f"    -> Deep Reading: {item['paper']['title'][:50]}...")
+    # 4c. Phase 3: Full Text Analysis (Sequential LLM)
+    print("  -> Phase 3: Analyzing Full Texts with LLM...")
+    for item in processed_candidates:
+        if 'full_text' in item:
+            print(f"    -> Analyzing Full Text: {item['paper']['title'][:30]}...")
             full_analysis = analyzer.analyze_full_paper(key_viewpoint, item['paper'], item['full_text'])
-            # Merge/Overwrite
-            item['analysis'] = full_analysis
-        
-        final_results.append({
-            'paper': item['paper'],
-            'analysis': item['analysis'],
-            'codes': item['codes']
-        })
+            item['analysis'] = full_analysis # Update with better analysis
+        final_results.append(item)
+
 
     # Sort by relevance score
     final_results.sort(key=lambda x: x['analysis'].get('relevance_score', 0), reverse=True)
