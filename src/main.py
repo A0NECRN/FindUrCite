@@ -7,8 +7,9 @@ from code_finder import CodeFinder
 import time
 from pdf_processor import PDFProcessor
 
-def generate_report(user_input, results, filename="research_result.md"):
-    with open(filename, "w", encoding="utf-8") as f:
+def generate_report(user_input, results, output_dir, filename="research_result.md"):
+    report_path = os.path.join(output_dir, filename)
+    with open(report_path, "w", encoding="utf-8") as f:
         f.write(f"# Research Report: {user_input}\n\n")
         
         # Disclaimer
@@ -164,6 +165,17 @@ def main():
 
     # Step 4: Analyze Papers (Sequential - constrained by GPU VRAM)
     print("Step 4: Analyzing papers (Deep Read Pipeline)...")
+    
+    # Create workspace folder early to store PDFs
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    workspace_name = f"research_output_{timestamp}"
+    workspace_path = os.path.join(os.getcwd(), workspace_name)
+    if not os.path.exists(workspace_path):
+        os.makedirs(workspace_path)
+    
+    # Configure PDF processor to use workspace
+    pdf_processor.set_download_dir(os.path.join(workspace_path, "pdfs"))
+    
     final_results = []
     
     for i, paper in enumerate(papers):
@@ -215,12 +227,10 @@ def main():
     # Step 5: Generate Report
     # Pass the Core Contribution as the "User Input" context for the report
     report_context = f"**Draft Analysis:** {core_contribution}\n\n**Viewpoint:** {key_viewpoint}"
-    generate_report(report_context, final_results, args.output)
     
-    # Cleanup downloaded PDFs
-    if 'pdf_processor' in locals():
-        print("[Main] Cleaning up temporary PDF files...")
-        pdf_processor.clean_up()
+    generate_report(report_context, final_results, workspace_path, args.output)
+    
+    print(f"[Main] All artifacts (report and PDFs) are saved in: {workspace_path}")
 
 if __name__ == "__main__":
     main()

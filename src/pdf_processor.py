@@ -5,9 +5,13 @@ import hashlib
 
 class PDFProcessor:
     def __init__(self, download_dir="downloads"):
-        self.download_dir = download_dir
-        if not os.path.exists(download_dir):
-            os.makedirs(download_dir)
+        self.set_download_dir(download_dir)
+
+    def set_download_dir(self, new_dir):
+        """Update the download directory."""
+        self.download_dir = new_dir
+        if not os.path.exists(self.download_dir):
+            os.makedirs(self.download_dir)
 
     def _get_filename(self, url):
         """Generate a filename from the URL hash."""
