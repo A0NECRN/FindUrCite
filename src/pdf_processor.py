@@ -1,6 +1,6 @@
 import os
 import requests
-import fitz  # PyMuPDF
+import fitz
 import hashlib
 
 class PDFProcessor:
@@ -41,10 +41,8 @@ class PDFProcessor:
                         f.write(chunk)
                 return local_path
             else:
-                print(f"Failed to download PDF from {url}: Status {response.status_code}")
                 return None
-        except Exception as e:
-            print(f"Error downloading PDF from {url}: {e}")
+        except Exception:
             return None
 
     def extract_text(self, pdf_path, max_pages=None):
@@ -65,8 +63,7 @@ class PDFProcessor:
                 text_content.append(f"--- Page {i+1} ---\n{text}")
             
             return "\n".join(text_content)
-        except Exception as e:
-            print(f"Error reading PDF {pdf_path}: {e}")
+        except Exception:
             return ""
         finally:
             if 'doc' in locals():

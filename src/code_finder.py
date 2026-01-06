@@ -19,8 +19,7 @@ class CodeFinder:
                 try:
                     data = future.result()
                     results[title] = data
-                except Exception as e:
-                    print(f"[CodeFinder] Error processing {title}: {e}")
+                except Exception:
                     results[title] = []
         return results
 
@@ -43,18 +42,14 @@ class CodeFinder:
                 data = response.json()
                 return self._process_github_results(data.get('items', []), paper_title)
             elif response.status_code == 403:
-                print(f"[CodeFinder] GitHub Rate Limit Hit. Skipping code search for now.")
                 return []
             else:
-                print(f"[CodeFinder] GitHub API Error: {response.status_code}")
                 return []
-        except Exception as e:
-            print(f"[CodeFinder] Exception: {e}")
+        except Exception:
             return []
 
     def _process_github_results(self, items, paper_title):
         results = []
-        title_words = set(paper_title.lower().split())
         
         for item in items:
             repo_name = item.get('name', '')

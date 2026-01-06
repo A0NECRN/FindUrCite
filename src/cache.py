@@ -13,8 +13,7 @@ class AnalysisCache:
             try:
                 with open(self.cache_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
-            except Exception as e:
-                print(f"[Cache] Error loading cache: {e}")
+            except Exception:
                 return {}
         return {}
 
@@ -22,8 +21,8 @@ class AnalysisCache:
         try:
             with open(self.cache_file, 'w', encoding='utf-8') as f:
                 json.dump(self.cache, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"[Cache] Error saving cache: {e}")
+        except Exception:
+            pass
 
     def _generate_key(self, viewpoint, paper_abstract):
         content = f"{viewpoint.strip()}|{paper_abstract.strip()}"

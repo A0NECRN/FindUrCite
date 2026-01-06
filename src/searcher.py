@@ -26,14 +26,12 @@ class Searcher:
                     data = response.json()
                     return self._process_ss_results(data.get('data', []))
                 elif response.status_code == 429:
-                    wait_time = (2 ** attempt) * 2  # Exponential backoff
-                    print(f"[Searcher] Semantic Scholar Rate Limit hit. Waiting {wait_time}s...")
+                    wait_time = (2 ** attempt) * 2
                     time.sleep(wait_time)
                 else:
-                    print(f"[Searcher] Semantic Scholar Error: {response.status_code}")
                     break
-            except Exception as e:
-                print(f"[Searcher] Exception: {e}")
+            except Exception:
+                pass
         
         return []
 
@@ -80,8 +78,7 @@ class Searcher:
         try:
             feed = feedparser.parse(url)
             return self._process_arxiv_results(feed.entries)
-        except Exception as e:
-            print(f"[Searcher] ArXiv Exception: {e}")
+        except Exception:
             return []
             
     def _process_arxiv_results(self, entries):
@@ -92,20 +89,18 @@ class Searcher:
                 'title': entry.title.replace('\n', ' '),
                 'abstract': entry.summary.replace('\n', ' '),
                 'year': entry.published[:4],
-                'citations': 'N/A', 
+                'citations': 'N/A',
                 'url': entry.link,
                 'openAccessPdf': {'url': entry.link.replace('abs', 'pdf')},
                 'venue': 'ArXiv',
                 'authors': [a.name for a in entry.authors],
-                'affiliations': [], 
-                'paperId': entry.id.split('/')[-1] 
+                'affiliations': [],
+                'paperId': entry.id.split('/')[-1]
             }
             results.append(result)
         return results
 
     def search_all(self, query, limit_per_source=5):
-        print(f"[Searcher] Searching for: {query}")
-        
         with ThreadPoolExecutor(max_workers=2) as executor:
             future_ss = executor.submit(self.search_semantic_scholar, query, limit=limit_per_source)
             future_arxiv = executor.submit(self.search_arxiv, query, limit=limit_per_source)
@@ -123,14 +118,11 @@ class Searcher:
                 seen_titles.add(normalized_title)
                 unique_results.append(res)
         
-        print(f"[Searcher] Found {len(unique_results)} unique papers.")
         return unique_results
 
     def search_multiple_queries(self, queries, limit_per_source=5):
         final_results = []
         seen_titles = set()
-        
-        print(f"[Searcher] Executing {len(queries)} queries...")
         
         for q in queries:
             results = self.search_all(q, limit_per_source=limit_per_source)
@@ -140,5 +132,4 @@ class Searcher:
                     seen_titles.add(normalized_title)
                     final_results.append(res)
         
-        print(f"[Searcher] Total aggregated unique papers from all queries: {len(final_results)}")
         return final_results
