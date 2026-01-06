@@ -11,13 +11,7 @@ class CodeFinder:
         }
 
     def find_codes_parallel(self, paper_titles):
-        """
-        Find code for multiple papers in parallel.
-        """
         results = {}
-        # GitHub API rate limit for unauthenticated requests is 10 per minute.
-        # Authenticated is 30 per minute.
-        # We must be conservative.
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             future_to_title = {executor.submit(self.find_code, title): title for title in paper_titles}
             for future in concurrent.futures.as_completed(future_to_title):
@@ -31,10 +25,7 @@ class CodeFinder:
         return results
 
     def find_code(self, paper_title):
-        # Clean title for better search
-        # Keep alphanumeric and spaces
         clean_title = "".join([c if c.isalnum() or c.isspace() else " " for c in paper_title]).strip()
-        # Use quotes for exact phrase match in readme or description
         query = f'"{clean_title}" in:readme,description'
         
         params = {
@@ -45,7 +36,6 @@ class CodeFinder:
         }
         
         try:
-            # Add a small delay to avoid hitting rate limits too fast if called in loop
             time.sleep(1) 
             response = requests.get(self.github_api_url, headers=self.headers, params=params, timeout=10)
             
@@ -64,7 +54,6 @@ class CodeFinder:
 
     def _process_github_results(self, items, paper_title):
         results = []
-        # Split paper title into words for simple relevance check
         title_words = set(paper_title.lower().split())
         
         for item in items:
@@ -72,9 +61,6 @@ class CodeFinder:
             repo_desc = item.get('description') or ''
             repo_url = item.get('html_url', '')
             stars = item.get('stargazers_count', 0)
-            
-            # Simple heuristic: if repository name or description contains significant overlap with title
-            # This is a weak check, but better than nothing.
             
             result = {
                 'platform': 'GitHub',
@@ -86,4 +72,3 @@ class CodeFinder:
             results.append(result)
             
         return results
-

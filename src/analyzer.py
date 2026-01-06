@@ -6,12 +6,8 @@ class Analyzer:
     def __init__(self, model="qwen2.5:7b"):
         self.model = model
         self.cache = AnalysisCache()
-        # Removed check_model call to avoid error if method was removed
 
     def analyze_user_input(self, text):
-        """
-        Analyze user's input text (draft or idea) to extract core contributions, viewpoints, and multiple search queries.
-        """
         prompt = f"""
         You are a research assistant. The user has provided a draft text or a description of their research.
         
@@ -42,128 +38,138 @@ class Analyzer:
             return json.loads(content)
         except Exception as e:
             print(f"[Analyzer] Input Analysis Error: {e}")
-            # Fallback
             return {
                 "core_contribution": text[:100],
                 "search_queries": [text[:50]],
                 "key_viewpoint": text[:100]
             }
 
-    def analyze_full_paper(self, user_viewpoint, paper, full_text):
-        """
-        Analyze the full text of the paper.
-        This provides a deeper analysis with evidence quotes.
-        """
-        # Truncate to avoid context overflow (approx 30k chars, increasing for better coverage)
+    def analyze_with_debate(self, user_viewpoint, paper, full_text):
+        print(f"[Analyzer] Starting Multi-Agent Debate for: {paper.get('title', '')[:30]}...")
+        
+        initial_analysis = self._run_student_analysis(user_viewpoint, paper, full_text)
+        
+        critique = self._run_mentor_critique(user_viewpoint, paper, full_text, initial_analysis)
+        
+        if critique.get("status") == "PASS":
+            print("[Analyzer] Mentor passed the analysis.")
+            return initial_analysis
+        else:
+            print("[Analyzer] Mentor requested revision. Improving analysis...")
+            final_analysis = self._run_student_revision(user_viewpoint, paper, full_text, initial_analysis, critique)
+            return final_analysis
+
+    def _run_student_analysis(self, user_viewpoint, paper, full_text):
         truncated_text = full_text[:30000]
-        
         prompt = f"""
-        You are a meticulous academic reviewer. You have access to the full text of the paper.
+        You are a meticulous academic researcher (Student Agent). Analyze the paper text.
         
-        **User Context / Research Goal:**
-        {user_viewpoint}
+        User Context: {user_viewpoint}
+        Paper Title: {paper.get('title')}
+        Content: {truncated_text}...
         
-        **Paper Title:** {paper.get('title')}
+        Task: Extract rigorous details. NO HALLUCINATIONS.
         
-        **Paper Content (Truncated):**
-        {truncated_text}
-        ...[End of Input]...
-        
-        **Task:**
-        Perform a rigorous deep analysis. You must be factual and avoid hallucination.
-        For every major claim (Method, Experiment, Defect), you MUST strictly infer from the provided text.
-        
-        **REQUIRED FIELDS (Strict Output):**
-        1. "relevance_score": Integer 1-5 (5 = Highly relevant to user context).
-        2. "match_reasoning": detailed explanation of why this paper fits the user context.
-        3. "sub_field": Specific sub-field (e.g., 'Code LLM', 'RAG').
-        4. "problem_def": What problem does it solve? + Mathematical/Formal definition if available.
-        5. "methodology": How did they solve the bottleneck? What is the core method?
-        6. "method_keywords": List of technical terms (e.g., 'AST', 'Contrastive Learning').
-        7. "algorithm_summary": Step-by-step flow or pseudocode summary.
-        8. "experiments": Datasets used, Baselines compared, and Main Results (Superiority).
-        9. "limitations": Explicitly stated limitations in the text.
-        10. "critique": Your critical evaluation (Strengths, Weaknesses, Reproducibility).
-        11. "datasets": Specific dataset names mentioned.
-        12. "others": Other notes (e.g., unique insights).
-        13. "evidence_quotes": A list of 3-5 verbatim sentences from the text that support your analysis of Method and Experiments.
-        
-        Output JSON only. Ensure all keys exist.
+        REQUIRED JSON OUTPUT:
+        {{
+            "relevance_score": 1-5,
+            "match_reasoning": "Why it fits/doesn't fit",
+            "sub_field": "Sub-field",
+            "problem_def": "Problem & Math Def",
+            "methodology": "Method & Bottleneck solved",
+            "method_keywords": "Keywords",
+            "algorithm_summary": "Pseudocode/Flow",
+            "experiments": "Datasets, Baselines, Results",
+            "limitations": "Flaws/Limitations",
+            "critique": "Your evaluation",
+            "datasets": "Specific datasets",
+            "others": "Notes",
+            "evidence_quotes": ["Quote 1", "Quote 2"]
+        }}
         """
+        return self._call_llm(prompt)
+
+    def _run_mentor_critique(self, user_viewpoint, paper, full_text, student_analysis):
+        truncated_text = full_text[:10000] 
+        analysis_str = json.dumps(student_analysis, indent=2)
+        prompt = f"""
+        You are a Senior Professor (Mentor Agent). Critique the Student's analysis of the paper.
         
+        Paper Title: {paper.get('title')}
+        Paper Excerpt: {truncated_text}...
+        Student Analysis:
+        {analysis_str}
+        
+        Check for:
+        1. Hallucinations (claims not in text).
+        2. Vague descriptions (e.g., "improved performance" without numbers).
+        3. Missing evidence quotes.
+        4. Alignment with User Context: {user_viewpoint}
+        
+        Output JSON:
+        {{
+            "status": "PASS" or "FAIL",
+            "critique_points": "List of specific issues to fix",
+            "guidance": "Instructions for revision"
+        }}
+        """
+        return self._call_llm(prompt)
+
+    def _run_student_revision(self, user_viewpoint, paper, full_text, previous_analysis, mentor_critique):
+        truncated_text = full_text[:30000]
+        prompt = f"""
+        You are the Student Agent. The Professor rejected your previous analysis.
+        
+        Professor's Critique: {mentor_critique.get('critique_points')}
+        Guidance: {mentor_critique.get('guidance')}
+        
+        Previous Analysis: {json.dumps(previous_analysis)}
+        
+        Paper Content: {truncated_text}...
+        
+        Task: Re-analyze the paper and FIX the issues. Ensure rigorous evidence.
+        Output the complete corrected JSON (same format as before).
+        """
+        return self._call_llm(prompt)
+
+    def _call_llm(self, prompt):
         try:
             response = ollama.chat(model=self.model, messages=[
                 {'role': 'user', 'content': prompt},
             ], format='json')
-            content = response['message']['content']
-            return json.loads(content)
+            return json.loads(response['message']['content'])
         except Exception as e:
-            print(f"[Analyzer] Full Text Analysis Error: {e}")
-            return self._get_empty_analysis(f"Error analyzing full text: {str(e)}")
+            print(f"[Analyzer] LLM Call Error: {e}")
+            return {}
 
     def analyze_paper_details(self, user_viewpoint, paper):
-        """
-        Perform a comprehensive analysis to extract fields required by the Excel format.
-        Checks cache first to avoid re-running LLM.
-        """
         abstract = paper.get('abstract', '')
         if not abstract:
             return self._get_empty_analysis("No abstract available")
 
-        # Check Cache
         cached_result = self.cache.get(user_viewpoint, abstract)
         if cached_result:
             print(f"[Analyzer] Cache Hit for: {paper.get('title', '')[:30]}...")
             return cached_result
 
         prompt = f"""
-        You are a rigorous academic research assistant. Your goal is to analyze the provided paper abstract accurately and evaluate its fit with the user's research context.
+        You are a rigorous academic research assistant. Analyze the abstract.
         
-        **STRICT RULES:**
-        1. **NO HALLUCINATION:** If information is not in the abstract or metadata, you MUST output "Not mentioned". Do NOT invent methods, numbers, or facts.
-        2. **STRICT FORMAT:** Output pure JSON.
-        3. **USER CONTEXT:** 
-           {user_viewpoint}
+        NO HALLUCINATION. Strict JSON format.
         
-        **PAPER INFORMATION:**
-        - Title: "{paper.get('title')}"
-        - Abstract: "{abstract}"
-        - Venue: "{paper.get('venue')}"
-        - Year: "{paper.get('year')}"
+        User Context: {user_viewpoint}
+        Paper: {paper.get('title')}
+        Abstract: {abstract}
         
-        **REQUIRED FIELDS (Extract or Infer carefully):**
-        1. "relevance_score": Integer 1-5 (5 is best). 
-           - 5: Strongly supports/matches the user's specific viewpoint/problem.
-           - 4: Relevant method or problem, supports general direction.
-           - 3: Same field but different focus.
-           - 2: Weak connection.
-           - 1: Irrelevant.
-        2. "match_reasoning": Explain WHY this paper fits (or doesn't fit) the User Context. Corresponding to "契合度分析".
-        3. "sub_field": The specific sub-field (e.g., "RAG", "Code Generation"). Corresponding to "细分领域".
-        4. "problem_def": What problem is solved? Include math definition if available. Corresponding to "解决了什么问题 + 问题数学定义".
-        5. "methodology": What bottleneck is solved? What method is used? Corresponding to "解决了什么瓶颈问题？用的什么方法？".
-        6. "method_keywords": Key technical terms. Corresponding to "方法关键词".
-        7. "algorithm_summary": Step-by-step flow or pseudocode. Corresponding to "算法流程".
-        8. "experiments": Setup, baselines, and metrics showing superiority. Corresponding to "实验设置".
-        9. "limitations": Specific flaws we can address (paving the way for our work). Corresponding to "缺陷".
-        10. "critique": Improvements, reproduction difficulty, overall evaluation. Corresponding to "阅读者评价".
-        11. "datasets": Specific datasets mentioned (e.g., HumanEval, MBPP). Corresponding to "数据集".
-        12. "others": Any other important notes (e.g., "Best Paper Award"). Corresponding to "其他".
-        13. "evidence_quotes": List of 1-2 verbatim sentences from the abstract that support the core claim.
-
-        Output JSON only. Ensure all keys exist.
+        Output JSON with fields: relevance_score, match_reasoning, sub_field, problem_def, methodology, method_keywords, algorithm_summary, experiments, limitations, critique, datasets, others, evidence_quotes.
         """
         
         try:
             response = ollama.chat(model=self.model, messages=[
                 {'role': 'user', 'content': prompt},
             ], format='json')
-            content = response['message']['content']
-            result = json.loads(content)
-            
-            # Save to Cache
+            result = json.loads(response['message']['content'])
             self.cache.set(user_viewpoint, abstract, result)
-            
             return result
         except Exception as e:
             print(f"[Analyzer] Detailed Analysis Error: {e}")
@@ -185,5 +191,3 @@ class Analyzer:
             "others": reason,
             "evidence_quotes": []
         }
-
-

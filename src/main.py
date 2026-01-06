@@ -243,13 +243,14 @@ def main():
                 print(f"      -> Failed to extract text for: {item['paper']['title'][:30]}")
             processed_candidates.append(item)
 
-    # 4c. Phase 3: Full Text Analysis (Sequential LLM)
-    print("  -> Phase 3: Analyzing Full Texts with LLM...")
+    # 4c. Phase 3: Full Text Analysis (Multi-Agent Debate Loop)
+    print("  -> Phase 3: Analyzing Full Texts with Multi-Agent Debate...")
     for item in processed_candidates:
         if 'full_text' in item:
-            print(f"    -> Analyzing Full Text: {item['paper']['title'][:30]}...")
-            full_analysis = analyzer.analyze_full_paper(key_viewpoint, item['paper'], item['full_text'])
-            item['analysis'] = full_analysis # Update with better analysis
+            print(f"    -> Analyzing Full Text (Debate): {item['paper']['title'][:30]}...")
+            # Use the new Multi-Agent Debate method
+            full_analysis = analyzer.analyze_with_debate(key_viewpoint, item['paper'], item['full_text'])
+            item['analysis'] = full_analysis 
         final_results.append(item)
 
 

@@ -26,10 +26,6 @@ class AnalysisCache:
             print(f"[Cache] Error saving cache: {e}")
 
     def _generate_key(self, viewpoint, paper_abstract):
-        """
-        Generate a unique key based on the user viewpoint and paper abstract.
-        Using MD5 for a balance of speed and collision resistance for this purpose.
-        """
         content = f"{viewpoint.strip()}|{paper_abstract.strip()}"
         return hashlib.md5(content.encode('utf-8')).hexdigest()
 
@@ -37,7 +33,6 @@ class AnalysisCache:
         key = self._generate_key(viewpoint, paper_abstract)
         entry = self.cache.get(key)
         if entry:
-            # You could add expiration logic here if needed
             return entry.get('data')
         return None
 

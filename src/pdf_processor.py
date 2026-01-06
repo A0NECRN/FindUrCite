@@ -8,25 +8,18 @@ class PDFProcessor:
         self.set_download_dir(download_dir)
 
     def set_download_dir(self, new_dir):
-        """Update the download directory."""
         self.download_dir = new_dir
         if not os.path.exists(self.download_dir):
             os.makedirs(self.download_dir)
 
     def _get_filename(self, url):
-        """Generate a filename from the URL hash."""
         url_hash = hashlib.md5(url.encode()).hexdigest()
         return os.path.join(self.download_dir, f"{url_hash}.pdf")
 
     def download_pdf(self, url):
-        """
-        Download PDF from a URL.
-        Returns the local file path if successful, None otherwise.
-        """
         if not url:
             return None
             
-        # Handle arXiv abstract URLs -> PDF URLs
         if "arxiv.org/abs/" in url:
             url = url.replace("arxiv.org/abs/", "arxiv.org/pdf/")
             if not url.endswith(".pdf"):
@@ -34,7 +27,6 @@ class PDFProcessor:
         
         local_path = self._get_filename(url)
         
-        # Return existing file if already downloaded
         if os.path.exists(local_path):
             return local_path
 
@@ -56,10 +48,6 @@ class PDFProcessor:
             return None
 
     def extract_text(self, pdf_path, max_pages=None):
-        """
-        Extract text from a local PDF file.
-        max_pages: Limit the number of pages to read (e.g., first 10 pages).
-        """
         if not pdf_path or not os.path.exists(pdf_path):
             return ""
 
@@ -85,7 +73,6 @@ class PDFProcessor:
                 doc.close()
 
     def clean_up(self):
-        """Remove all downloaded files."""
         if os.path.exists(self.download_dir):
             for f in os.listdir(self.download_dir):
                 os.remove(os.path.join(self.download_dir, f))

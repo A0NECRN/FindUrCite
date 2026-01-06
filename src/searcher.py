@@ -43,15 +43,12 @@ class Searcher:
             if not item.get('title'):
                 continue
             
-            # Format Authors with Affiliations if available
-            # Note: Semantic Scholar API might return 'affiliations' as a list of strings
             authors_formatted = []
             affiliations_set = set()
             for a in item.get('authors', []):
                 name = a.get('name')
                 if not name: continue
                 authors_formatted.append(name)
-                # Check for affiliations
                 affs = a.get('affiliations', [])
                 if affs:
                     for aff in affs:
@@ -60,7 +57,6 @@ class Searcher:
                         elif isinstance(aff, dict) and 'name' in aff:
                             affiliations_set.add(aff['name'])
 
-            # Construct a standardized result object
             result = {
                 'source': 'Semantic Scholar',
                 'title': item.get('title'),
@@ -78,8 +74,6 @@ class Searcher:
         return results
 
     def search_arxiv(self, query, limit=5):
-        # ArXiv query syntax needs some care.
-        # Simple implementation: search all fields.
         encoded_query = urllib.parse.quote(query)
         url = f"{self.arxiv_url}?search_query=all:{encoded_query}&start=0&max_results={limit}"
         
@@ -98,13 +92,13 @@ class Searcher:
                 'title': entry.title.replace('\n', ' '),
                 'abstract': entry.summary.replace('\n', ' '),
                 'year': entry.published[:4],
-                'citations': 'N/A', # ArXiv API doesn't provide citation count
+                'citations': 'N/A', 
                 'url': entry.link,
                 'openAccessPdf': {'url': entry.link.replace('abs', 'pdf')},
                 'venue': 'ArXiv',
                 'authors': [a.name for a in entry.authors],
-                'affiliations': [], # ArXiv API simple feed doesn't provide structured affiliations easily
-                'paperId': entry.id.split('/')[-1] # ArXiv ID
+                'affiliations': [], 
+                'paperId': entry.id.split('/')[-1] 
             }
             results.append(result)
         return results
@@ -119,7 +113,6 @@ class Searcher:
             ss_results = future_ss.result()
             arxiv_results = future_arxiv.result()
         
-        # Merge and dedup (simple dedup by title)
         all_results = ss_results + arxiv_results
         seen_titles = set()
         unique_results = []
@@ -134,24 +127,18 @@ class Searcher:
         return unique_results
 
     def search_multiple_queries(self, queries, limit_per_source=5):
-        """
-        Execute multiple search queries and aggregate unique results.
-        """
         final_results = []
         seen_titles = set()
         
         print(f"[Searcher] Executing {len(queries)} queries...")
         
         for q in queries:
-            # We reuse search_all for each query
             results = self.search_all(q, limit_per_source=limit_per_source)
             for res in results:
                 normalized_title = res['title'].lower().strip()
-                # Basic fuzzy check could be better, but exact lower string match is safe for now
                 if normalized_title not in seen_titles:
                     seen_titles.add(normalized_title)
                     final_results.append(res)
         
         print(f"[Searcher] Total aggregated unique papers from all queries: {len(final_results)}")
         return final_results
-
