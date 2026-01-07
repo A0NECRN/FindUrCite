@@ -354,13 +354,7 @@
 
                 const renderMarkdown = (text) => {
                     if (!text) return "";
-                    // Fix bold text next to Chinese characters or punctuation for better rendering
-                    // This regex finds ** followed by a non-whitespace character and adds a space,
-                    // and a non-whitespace character followed by ** and adds a space.
-                    const fixedText = text
-                        .replace(/(\*\*)([^\s])/g, '$1 $2')
-                        .replace(/([^\s])(\*\*)/g, '$1 $2');
-                    return marked.parse(fixedText);
+                    return marked.parse(text);
                 };
                 
                 const downloadReport = () => {

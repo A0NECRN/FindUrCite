@@ -86,7 +86,7 @@ Initialize the environment and start the service using the provided automation s
 ### 🛠️ 核心技术特性
 
 - **对抗式辩证引擎 (Adversarial Dialectical Engine)**：区别于传统的单向生成式摘要工具，系统内置了双智能体架构。`Advisor Agent` 担任**对抗性审查者 (Adversarial Reviewer)** 的角色，对 `Student Agent` 的分析结论进行多轮次、深层次的质询与挑战。只有逻辑严密、证据确凿的分析才能通过审查。
-- **可验证证据链 (Verifiable Evidence Chain)**：执行严格的**“无引证，不输出”**策略。利用思维链 (CoT) 技术，强制要求所有分析观点必须映射到 PDF 原文中的具体文本片段 (Quotes)，从而彻底杜绝信息捏造。
+- **可验证证据链 (Verifiable Evidence Chain)**：执行严格的 **“无引证，不输出”** 策略。利用思维链 (CoT) 技术，强制要求所有分析观点必须映射到 PDF 原文中的具体文本片段 (Quotes)，从而彻底杜绝信息捏造。
 - **全栈本地化科研自动化**：在本地闭环完成从语义搜索 (Semantic Scholar/ArXiv)、高并发 PDF 获取、鲁棒性解析、对抗博弈分析、多维度评分到最终报告生成的完整工作流。
 - **异步流式渲染**：基于 FastAPI 构建高并发后端，利用 WebSocket 实现事件流传输，在前端实时可视化呈现智能体之间的辩论过程，并支持在运行时动态切换底层推理模型。
 - **隐私优先架构**：专为本地部署设计，深度适配 **Ollama** 推理引擎，支持 Qwen 2.5、DeepSeek R1 等高性能开源模型，严格保障科研课题与数据的私密性。
