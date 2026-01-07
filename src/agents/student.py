@@ -92,10 +92,13 @@ class StudentAgent(BaseAgent):
         Step 2: Determine the specific sub-field and technical keywords.
         Step 3: Formulate a 'Key Viewpoint' that encapsulates the user's unique stance or contribution.
         Step 4: Generate search queries. 
-           - IMPORTANT: All search queries MUST be in ENGLISH, regardless of the input language. ArXiv and Semantic Scholar require English queries.
-           - Include 2 broad queries for context (in English).
-           - Include 2 specific queries for direct methodology (in English).
-           - Include 1 'negative' or distinct query to filter out unrelated fields (e.g. if 'financial LLM', exclude 'medical').
+           - IMPORTANT: All search queries MUST be in ENGLISH, regardless of the input language.
+           - The queries must be precise and academic.
+           - Query 1: Broad intersection of Method & Domain (e.g., "LLM for academic literature review").
+           - Query 2: Specific technical approach (e.g., "Multi-agent system for automated survey").
+           - Query 3: Problem-solving focus (e.g., "Reducing hallucination in scientific writing with agents").
+           - Query 4: Similar existing systems or SOTA (e.g., "Automated research assistant using Large Language Models").
+           - Query 5: A distinct aspect or alternative phrasing (e.g., "Adversarial dialectic in information retrieval").
         
         Step 5: Extract 3-5 critical English keywords for filtering (e.g., "LLM", "Finance", "Transaction Cost").
         
