@@ -48,7 +48,7 @@ graph TD
 #### 1. Prerequisites
 - **Operating System**: Windows 11 (Scripts optimized for PowerShell 5+)
 - **Runtime Environment**: Python 3.10+
-- **Inference Engine**: [Ollama](https://ollama.com/) (Must be installed and running)
+- **Inference Engine**: [Ollama](https://ollama.com/) (Auto-installed by script if missing)
 - **Recommended Models**: 
   - **Balanced**: `qwen2.5:7b` (Requires ~6GB VRAM)
   - **Reasoning-Enhanced**: `deepseek-r1:8b` (Requires ~8GB VRAM)
@@ -61,7 +61,7 @@ Initialize the environment and start the service using the provided automation s
 ```
 
 **The script performs the following operations automatically:**
-1. Checks for Python and Ollama dependencies.
+1. Checks for Python and Ollama dependencies (Auto-installs Ollama if not found).
 2. Creates a virtual environment (`venv`) and installs Python dependencies.
 3. Interactively selects and pulls the specified LLM model.
 4. Launches the backend server and opens the client interface in the default browser.
@@ -100,7 +100,7 @@ Initialize the environment and start the service using the provided automation s
 #### 1. 环境准备
 - **操作系统**: Windows 11 (已针对 PowerShell 5+ 进行脚本优化)
 - **运行环境**: Python 3.10+
-- **推理引擎**: [Ollama](https://ollama.com/) (需预先安装并运行)
+- **推理引擎**: [Ollama](https://ollama.com/) (若未安装，脚本将自动尝试安装)
 - **推荐模型**: 
   - **平衡型**: `qwen2.5:7b` (显存需求约 6GB)
   - **推理增强型**: `deepseek-r1:8b` (显存需求约 8GB)
@@ -113,7 +113,7 @@ Initialize the environment and start the service using the provided automation s
 ```
 
 **该脚本将自动执行以下操作：**
-1. 检测系统 Python 环境与 Ollama 服务状态。
+1. 检测系统 Python 环境与 Ollama 服务状态（缺失时自动安装 Ollama）。
 2. 创建独立虚拟环境 (`venv`) 并安装依赖。
 3. 交互式选择并自动拉取指定的大语言模型。
 4. 启动后端服务并自动打开浏览器访问客户端界面。

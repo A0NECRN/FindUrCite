@@ -33,6 +33,14 @@ async def get():
     with open(os.path.join(static_dir, "index.html"), "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
+@app.get("/api/config")
+async def get_config():
+    """
+    Returns the server configuration, including the default model selected in the launcher.
+    """
+    default_model = os.environ.get("MODEL_NAME", "qwen2.5:7b")
+    return {"default_model": default_model}
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()

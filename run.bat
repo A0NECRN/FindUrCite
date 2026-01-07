@@ -46,15 +46,30 @@ if %errorlevel% neq 0 (
 echo [4/6] Checking Ollama...
 where ollama >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [WARN] Ollama not found. Attempting to install via Winget...
+    echo [WARN] Ollama not found.
+    
+    echo [INFO] Attempting to install via Winget...
     winget install -e --id Ollama.Ollama --accept-source-agreements --accept-package-agreements
+    
     if !errorlevel! neq 0 (
-        echo [ERROR] Failed to install Ollama. Please download manually from https://ollama.com/
-        pause
-        exit /b
+        echo [WARN] Winget installation failed. Attempting direct download...
+        echo [INFO] Downloading OllamaSetup.exe...
+        powershell -Command "Invoke-WebRequest -Uri 'https://ollama.com/download/OllamaSetup.exe' -OutFile 'OllamaSetup.exe'"
+        
+        if exist "OllamaSetup.exe" (
+             echo [INFO] Installer downloaded. Launching...
+             echo [INFO] Please complete the installation in the new window.
+             start /wait OllamaSetup.exe
+             del OllamaSetup.exe
+        ) else (
+             echo [ERROR] Failed to download Ollama. Please install manually from https://ollama.com/
+             pause
+             exit /b
+        )
     )
-    echo [INFO] Ollama installed. Please RESTART this script to ensure PATH is updated.
-    echo [INFO] You may need to reopen the terminal.
+    
+    echo [INFO] Ollama installed. 
+    echo [IMPORTANT] Please RESTART this script (close and reopen) to update system PATH.
     pause
     exit /b
 )

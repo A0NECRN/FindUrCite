@@ -251,6 +251,22 @@
                 const chatEnd = ref(null);
                 const outputDir = ref("");
 
+                // Fetch server config
+                const fetchConfig = async () => {
+                    try {
+                        const res = await fetch('/api/config');
+                        const data = await res.json();
+                        if (data.default_model) {
+                            modelName.value = data.default_model;
+                            console.log("Loaded default model:", modelName.value);
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch config:", e);
+                    }
+                };
+                
+                fetchConfig();
+
                 let ws = null;
 
                 const startResearch = () => {
