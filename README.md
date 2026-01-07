@@ -2,9 +2,9 @@
 
 [English](#english) | [中文](#chinese)
 
-FindUrCite 是一款基于多智能体博弈（Multi-Agent System）架构的深度学术文献调研工具。它通过模拟“研究员-评审员”之间的对抗式辩论，强制执行证据链提取与逻辑校验，旨在解决大语言模型在科研综述中的幻觉问题，为科研人员提供严谨、可追溯的文献分析报告。
+FindUrCite 是一款基于多智能体博弈（Multi-Agent System）架构的科研文献深度分析系统。它通过模拟“研究员-审查者”之间的对抗式辩论，引入证据约束机制与批判性思维链，旨在系统性缓解大语言模型在科研综述中的幻觉问题，确保每一项分析结论均具备严谨的原文证据支撑。
 
-FindUrCite is an advanced literature analysis framework powered by a Multi-Agent System (MAS). By simulating an adversarial debate between a "Researcher" and a "Reviewer," it enforces rigorous evidence chain extraction and logical verification. The system is specifically designed to mitigate LLM hallucinations in academic synthesis, providing researchers with highly accurate, traceable, and critical literature insights.
+FindUrCite is a sophisticated literature analysis system powered by a Multi-Agent System (MAS) architecture. By simulating an adversarial debate between a **Researcher Agent** and a **Critical Reviewer Agent**, it implements an evidence-constrained mechanism and critical thinking chains. The system is designed to systematically mitigate LLM hallucinations in academic synthesis, ensuring that every analytical conclusion is rigorously grounded in empirical evidence from the source text.
 
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
@@ -16,29 +16,43 @@ FindUrCite is an advanced literature analysis framework powered by a Multi-Agent
 
 ## 🇨🇳 中文说明
 
-### 🛠️ 核心工程特性
+### 🛠️ 核心技术特性
 
-- **辩证博弈引擎 (Dialectical Engine)**：系统内置 `Student`（研究员）与 `Advisor`（评审员）双智能体。`Advisor` 扮演“批判性审核者”角色，对 `Student` 提交的分析报告进行多维度的对抗式质询。只有通过严格证据校验的结论才会被系统采纳，确保了分析的深度与客观性。
-- **零幻觉证据链 (Zero-Hallucination Evidence Chain)**：强制执行“无原文引证不输出”的准则。系统生成的每一项核心发现必须精确映射到 PDF 原文中的具体片段（Quotes），实现了从结论到证据的闭环追踪。
-- **自动化科研流水线 (Automated Research Pipeline)**：集成语义搜索（Semantic Scholar/ArXiv）、异步 PDF 抓取、启发式语义解析、多轮博弈逻辑、多维度量化评分及最终综述生成，提供一站式、闭环式的科研分析体验。
-- **实时事件驱动渲染 (Event-Driven Rendering)**：基于 FastAPI WebSocket 构建，前端实时流式展示智能体之间的辩论过程与思维轨迹，支持多模型（Qwen2.5, DeepSeek R1 等）的动态热切换。
-- **私有化安全部署 (Privacy-First Deployment)**：全面适配 Ollama 本地推理引擎，所有文献处理与模型推理均在本地完成，保障核心研究数据的隐私与安全。
+- **辩证博弈引擎 (Dialectical Engine)**：系统内置 `Student` (研究员) 与 `Advisor` (审查者) 智能体。`Advisor` 采用 **“魔鬼代言人 (Devil's Advocate)”** 策略，对初稿进行多轮逻辑质询与证据审查，仅在达成共识后输出结论。
+- **零幻觉证据链 (Zero-Hallucination Evidence Chain)**：强制执行 **“无引证不结论”** 原则。所有分析点必须精准映射至 PDF 原文中的具体片段 (Evidence Quotes)，实现分析过程的可追溯性。
+- **全自动本地科研闭环**：集成精准语义搜索（Semantic Scholar/ArXiv）、异步 PDF 获取、结构化语义解析、多轮博弈对抗、多维度量化评分及详尽报告生成。
+- **异步流式响应**：基于 FastAPI WebSocket 构建实时事件流，动态展示智能体之间的辩论逻辑与思维演进过程。
+- **隐私优先的本地部署**：全面支持 Ollama 推理框架（推荐 `qwen2.5:7b` 或 `deepseek-r1:8b`），确保敏感研究数据不离开本地环境。
 
 ### 🏗️ 系统架构
 
 ```mermaid
 graph TD
-    A[用户研究方向/草稿输入] --> B[Searcher: 语义化文献检索]
-    B --> C[PDF Processor: 异步下载与结构化解析]
-    C --> D[Workflow: 辩证博弈调度器]
-    subgraph "Adversarial MAS Loop"
-    D --> E[Student Agent: 深度研读与知识提取]
-    E --> F[Advisor Agent: 对抗质询与证据审核]
-    F -->|校验未通过| E
+    A[用户研究意图/草稿] --> B[Searcher: 语义检索]
+    B --> C[PDF Processor: 异步获取与解析]
+    C --> D[Workflow: 辩证博弈状态机]
+    subgraph "Dialectical MAS Loop"
+    D --> E[Student Agent: 深度阅读与假说构建]
+    E --> F[Advisor Agent: 批判性质询与证据审核]
+    F -->|验证未通过| E
     end
-    F -->|共识达成| G[Synthesis: 全局综述合成]
-    G --> H[Output: 21列结构化分析报告]
+    F -->|逻辑共识| G[Synthesis: 全局性综述合成]
+    G --> H[Markdown Report: 21列结构化分析报告]
 ```
+
+### 🚀 快速开始
+
+#### 1. 环境依赖
+- **操作系统**: Windows 11 (已针对 PowerShell 优化)
+- **核心组件**: Python 3.10+, [Ollama](https://ollama.com/)
+- **推荐模型**: `qwen2.5:7b` 或具有强推理能力的 `deepseek-r1:8b`
+
+#### 2. 自动化部署
+运行本项目提供的自动化初始化脚本：
+```powershell
+./run.bat
+```
+该脚本将自动执行：依赖环境校验、虚拟环境构建、核心模型拉取及服务一键启动。
 
 ---
 
@@ -46,48 +60,51 @@ graph TD
 
 ## 🇬🇧 English Description
 
-### 🛠️ Key Engineering Features
+### 🛠️ Core Technical Features
 
-- **Dialectical Reasoning Engine**: The system features a dual-agent architecture comprising a `Student` (Researcher) and an `Advisor` (Reviewer). The `Advisor` functions as a "Critical Reviewer," performing adversarial interrogation on the initial findings. Only findings that survive rigorous evidence validation are accepted, ensuring analytical depth and objectivity.
-- **Zero-Hallucination Evidence Chain**: Implements a strict "Evidence-First" policy. Every analytical claim generated by the system must be precisely mapped to direct quotes from the original PDF, creating a verifiable link between AI insights and source data.
-- **Automated Research Pipeline**: A seamless, one-click workflow integrating semantic search (Semantic Scholar/ArXiv), asynchronous PDF retrieval, heuristic parsing, multi-agent debate logic, multi-dimensional scoring, and final synthesis generation.
-- **Real-time Event Streaming**: Powered by FastAPI WebSockets, the frontend provides a live stream of the agents' internal reasoning and debate process, with full support for dynamic model switching (e.g., Qwen2.5, DeepSeek R1).
-- **Privacy-Centric Local Deployment**: Fully optimized for the Ollama inference engine. All data processing and LLM reasoning occur locally, ensuring the highest level of security for sensitive research materials.
+- **Dialectical Engine**: Features a sophisticated interaction between a **Student Agent** (Researcher) and an **Advisor Agent** (Critical Reviewer). The Advisor employs a **"Devil's Advocate"** strategy, challenging the Researcher's claims through multi-round interrogation until a consensus grounded in logic is reached.
+- **Zero-Hallucination Evidence Chain**: Enforces a strict **"No Quote, No Claim"** policy. Every analytical insight is bi-directionally linked to specific text segments (Evidence Quotes) within the original PDF, ensuring 100% traceability.
+- **Automated Research Pipeline**: A seamless workflow integrating semantic search (Semantic Scholar/ArXiv), asynchronous PDF retrieval, robust structural parsing, adversarial debate, and multi-dimensional quantitative scoring.
+- **Async Stream Rendering**: Powered by FastAPI WebSockets to provide real-time visualization of the agents' dialectical reasoning and evidence extraction progress.
+- **Privacy-Centric Local Deployment**: Full integration with the Ollama inference framework, enabling high-performance local execution without compromising data confidentiality.
 
 ### 🏗️ System Architecture
 
-(Please refer to the Mermaid diagram in the Chinese section above.)
+(Please refer to the Mermaid diagram in the Chinese section for a visual representation of the MAS loop.)
 
-### 🚀 快速开始 / Quick Start
+### 🚀 Quick Start
 
-#### 1. 环境准备 / Prerequisites
-- **OS**: Windows 11 (Optimized)
-- **Runtime**: Python 3.10+, [Ollama](https://ollama.com/)
-- **Models**: Recommended `qwen2.5:7b` (Standard) or `deepseek-r1:8b` (Reasoning-Heavy)
+#### 1. Prerequisites
+- **OS**: Windows 11 (Batch scripts optimized for PowerShell)
+- **Requirements**: Python 3.10+, [Ollama](https://ollama.com/)
+- **Recommended Models**: `qwen2.5:7b` or `deepseek-r1:8b` (Reasoning-focused)
 
-#### 2. 一键部署 / One-Click Launch
+#### 2. Deployment
+Execute the automated initialization script:
 ```powershell
 ./run.bat
 ```
-该脚本将自动化完成环境校验、依赖安装、模型拉取及服务启动。 / This script automates environment checks, dependency installation, model pulling, and server deployment.
+This script automates environment verification, dependency installation, model synchronization, and server orchestration.
 
 ---
 
-## 📊 模块对照表 / Core Modules Mapping
+## 📊 核心架构模块 / Core Modules
 
-| 模块 / Module | 专业描述 / Technical Description | 核心文件 / Core Files |
+| 模块 / Module | 专业职能 / Functionality | 核心文件 / Key Files |
 | :--- | :--- | :--- |
-| **Agents** | 定义智能体人格属性、思维链 (CoT) 及系统提示词 / Defines Agent Personas, CoT, and System Prompts | `src/agents/` |
-| **Workflow** | 管理多轮辩论的状态机、分段打分逻辑及共识机制 / Orchestrates State Machine, Scoring Logic, and Consensus | `src/workflow.py` |
-| **Processor** | 负责 PDF 的鲁棒性解析、布局分析与文本提取 / Robust PDF Ingestion, Layout Analysis, and Text Extraction | `src/pdf_processor.py` |
-| **Server** | 提供 WebSocket 实时事件流与静态资源托管 / WebSocket Event Streaming and Static File Serving | `src/server.py` |
+| **Agents** | 智能体思维链与系统提示词 / Agent CoT and Prompts | `src/agents/` |
+| **Workflow** | 辩证博弈状态机与共识算法 / Debate State Machine and Consensus | `src/workflow.py` |
+| **Processor** | 鲁棒性 PDF 解析与语义提取 / Robust PDF Parsing and Extraction | `src/pdf_processor.py` |
+| **Server** | 实时通信与静态资产托管 / WebSocket and Asset Serving | `src/server.py` |
 
 ---
 
-## 🛡️ 开发规范与日志 / Standards & Error Logs
-
-FindUrCite 遵循严格的工程开发规范。针对 API 频控、PDF 编码兼容性及多智能体并发策略的优化详情，请参阅 [error_log.md](error_log.md)。
-FindUrCite adheres to rigorous engineering standards. For details on optimizations regarding API rate-limiting, PDF encoding compatibility, and MAS concurrency strategies, see [error_log.md](error_log.md).
+## 📈 演进路线 / Roadmap
+- [x] 多维度量化评分体系 (0-10 Scale)
+- [x] 动态对抗质询阶段 (Adversarial Phases)
+- [x] 实时博弈过程可视化
+- [ ] 知识图谱集成 (Knowledge Graph Integration)
+- [ ] 自动化消融实验分析 (Automated Ablation Study Analysis)
 
 ## 📜 许可证 / License
 [MIT License](LICENSE)
