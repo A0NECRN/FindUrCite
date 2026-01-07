@@ -19,3 +19,7 @@ env/
 .env
 .vscode/
 .idea/
+
+# Logs
+error_log.md
+*.log
