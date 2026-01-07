@@ -7,133 +7,116 @@
 
 <a name="english"></a>
 
-## English
+## 🇬🇧 English
 
-**FindUrCite** is an advanced academic research automation tool designed to streamline literature review, code discovery, and deep paper analysis. By leveraging a **Multi-Agent Debate System** (Student-Advisor model), it ensures high-quality, rigorous, and hallucination-free research outcomes. 
+**FindUrCite** is a state-of-the-art academic research automation framework designed to transform how researchers discover, analyze, and synthesize literature. By integrating a **Multi-Agent Debate System** with robust search and processing pipelines, it ensures that every research insight is rigorous, evidence-based, and free from common AI hallucinations.
 
-Equipped with a modern **FastAPI + Vue 3** web interface and **WebSocket** real-time streaming, FindUrCite provides a seamless and interactive research experience.
+### 🌟 Core Capabilities
 
-### 🌟 Key Features
+*   **Multi-Agent Debate (Student-Advisor)**: Features an iterative "Critique-Revision" loop between a **Student Agent** (responsible for drafting analysis) and an **Advisor Agent** (acting as a senior reviewer). This system simulates real-world academic peer review to refine relevance and depth.
+*   **Deep Read Pipeline**: Beyond abstracts, the system automatically fetches full-text PDFs, extracts content using advanced OCR-aware methods, and performs deep analysis on the most promising papers.
+*   **Intelligent Query Expansion**: Automatically generates multi-dimensional search strategies (Broad, Specific, and Niche) to maximize discovery across **Semantic Scholar**, **ArXiv**, and other academic databases.
+*   **Automated Code & Implementation Discovery**: Simultaneously searches **GitHub** for open-source implementations, providing star counts and direct links to bridge the gap between theoretical research and practical execution.
+*   **Zero-Hallucination Evidence System**: Every analytical claim is strictly backed by direct quotes ("Evidence Quotes") from the source text, ensuring 100% traceability and reliability.
+*   **Modern Web Interface**: A high-performance UI built with **FastAPI**, **WebSockets**, and **Vue 3**, providing real-time streaming updates of the research progress.
+*   **Structured Professional Reporting**: Generates comprehensive Markdown and CSV-ready reports with over 20 analytical dimensions, ideal for systematic literature reviews (SLR).
 
-*   **Multi-Agent Debate (Student-Advisor)**: Implements an iterative critique-revision loop. A "Student" agent drafts analysis while an "Advisor" agent (simulating a strict conference reviewer) provides evidence-based critiques.
-*   **Chain-of-Thought (CoT) Reasoning**: Agents use CoT to analyze user inputs and research papers, ensuring deep understanding of core contributions and methodologies.
-*   **Real-Time Streaming UI**: A modern Vue 3 + Tailwind CSS dashboard that displays the research process live via WebSockets.
-*   **Deep Read Pipeline**: Automatically fetches full-text PDFs from ArXiv and Semantic Scholar, extracts content, and performs comprehensive analysis.
-*   **Smart Query Expansion**: Generates multi-dimensional search queries (Broad, Specific, Niche) to maximize discovery across academic databases.
-*   **Automated Code Discovery**: Scours GitHub for relevant repositories, including star counts and direct links, bridging the gap between theory and implementation.
-*   **Anti-Hallucination Constraints**: Strict prompts and evidence-based requirements ensure all claims are backed by source text, preventing LLM "hallucinations."
-*   **Comprehensive Reports**: Generates detailed Markdown reports with 23+ data columns, including core ideas, methodologies, and critiques.
+### 🏗️ Technical Architecture
 
-### 🏗️ Architecture
-
-*   `src/agents/`: Role-specific LLM agents (Student with CoT, Advisor with strict review logic).
-*   `src/server.py`: FastAPI backend supporting WebSocket streaming and static file serving.
-*   `src/static/`: Modern Vue 3 + Tailwind CSS frontend.
-*   `src/workflow.py`: Orchestration of the multi-agent debate and research pipeline.
-*   `src/searcher.py`: Integration with Semantic Scholar and ArXiv API.
-*   `src/pdf_processor.py`: Robust PDF handling, downloading, and text extraction.
-*   `src/code_finder.py`: GitHub API integration for code discovery.
+*   `src/agents/`: Specialized LLM personas (Student, Advisor) with distinct reasoning chains.
+*   `src/workflow.py`: The "brain" of the system, orchestrating the debate logic and research stages.
+*   `src/searcher.py`: Advanced multi-query engine for academic discovery.
+*   `src/pdf_processor.py`: Robust handling of PDF downloads and text extraction.
+*   `src/server.py`: FastAPI backend supporting real-time WebSocket communication.
+*   `src/static/`: Modern, responsive frontend built with Vue 3 and Tailwind CSS.
 
 ### 🚀 Getting Started
 
 #### Prerequisites
-*   Python 3.10+
-*   [Ollama](https://ollama.com/) (Recommended model: `qwen2.5:7b`)
-*   CUDA-enabled GPU (Optional but recommended for faster LLM inference)
+*   **Python 3.10+**
+*   **[Ollama](https://ollama.com/)**: Installed and running locally.
+*   **Default Model**: `qwen2.5:7b` (recommended for its strong reasoning and bilingual capabilities).
 
 #### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/FindUrCite.git
+git clone https://github.com/your-username/FindUrCite.git
 cd FindUrCite
 
-# Install dependencies using Tsinghua mirror
+# Install dependencies (using Tsinghua mirror for optimized speed in China)
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
-#### Usage
+#### Running the System
+1.  **Start the Web Interface (Recommended)**:
+    ```bash
+    python src/server.py
+    ```
+    Access the UI at `http://localhost:8000`.
 
-**1. Start the Web Server (Recommended)**
-```bash
-python src/server.py
-```
-Open your browser at `http://localhost:8000` to access the modern research dashboard.
-
-**2. Start via Batch Script (CLI)**
-Double-click `run_system.bat` or run:
-```bash
-run_system.bat
-```
-
-### 🛠️ Maintenance & Quality Assurance
-We maintain an `error_log.md` to track, resolve, and prevent recurring issues, ensuring the system's reliability and continuous improvement.
+2.  **Command Line Usage**:
+    ```bash
+    python src/main.py "Your research idea or abstract here"
+    ```
 
 ---
 
 <a name="chinese"></a>
 
-## 中文
+## 🇨🇳 中文
 
-**FindUrCite** 是一款先进的自动化科研助手，旨在简化文献综述、代码搜索和深度论文分析流程。通过引入 **多智能体博弈系统 (Student-Advisor 模型)**，确保研究结果的高质量、严谨性且无幻觉。
+**FindUrCite** 是一款尖端的自动化科研助手，旨在彻底改变科研人员检索、分析和综述文献的方式。通过将**多智能体博弈系统**与强大的搜索和处理流水线相结合，它确保了每一项研究见解都具备严谨性、证据支撑，并有效杜绝了 AI 常见的幻觉问题。
 
-系统配备了基于 **FastAPI + Vue 3** 的现代 Web 界面，并通过 **WebSocket** 实现实时流式输出，为用户提供流畅且互动的科研体验。
+### 🌟 核心功能
 
-### 🌟 核心特性
-
-*   **多智能体博弈 (导师-学生模型)**：模拟“学生”起草分析与“导师”（模拟严厉的顶会审稿人）审核质疑的反复迭代过程，通过多轮辩论提升学术分析的深度。
-*   **思维链 (CoT) 推理**：智能体采用思维链技术分析用户需求和论文内容，确保对核心贡献和方法论的深度理解。
-*   **实时流式 UI**：基于 Vue 3 + Tailwind CSS 开发的现代控制面板，通过 WebSocket 实时展示搜索、辩论和分析进度。
-*   **深度阅读流水线 (Deep Read Pipeline)**：自动从 ArXiv 和 Semantic Scholar 获取 PDF 全文、提取文本，并进行全方位的深度解析。
-*   **智能搜索扩展**：自动生成多维度搜索查询（广度、精度、深度），最大程度挖掘潜在参考文献。
-*   **自动化代码发现**：自动检索 GitHub 相关仓库及其 Star 数，直观展示论文的开源实现情况。
-*   **抗幻觉约束**：通过严格的 Prompt 工程和证据驱动要求，确保所有结论均有原文支撑，杜绝大模型“一本正经胡说八道”。
-*   **全方位研究报告**：生成包含 23+ 数据维度的详细 Markdown 报告，涵盖核心思想、方法论、局限性及专家点评。
+*   **多智能体博弈 (导师-学生模型)**：模拟真实的学术审稿流程。**学生智能体**负责起草初步分析，**导师智能体**作为资深评审进行质疑与修正。通过多轮迭代辩论，不断提升分析的相关性与深度。
+*   **深度阅读流水线 (Deep Read Pipeline)**：不仅限于摘要分析。系统会自动获取 PDF 全文，利用先进的文本提取技术，对最具潜力的论文进行全方位深度解析。
+*   **智能搜索策略扩展**：自动生成多维度搜索查询（广度、精度、深度），全面覆盖 **Semantic Scholar** 和 **ArXiv** 等学术数据库，最大程度挖掘潜在参考文献。
+*   **自动化代码发现**：同步检索 **GitHub** 开源实现，提供 Star 数及直接链接，帮助科研人员快速从理论研究走向代码落地。
+*   **零幻觉证据系统**：每一项分析结论均附带原文直接引用（Evidence Quotes），确保所有结论 100% 可追溯、可验证。
+*   **现代化 Web 界面**：基于 **FastAPI**、**WebSockets** 和 **Vue 3** 构建的高性能 UI，支持科研全过程的实时流式状态更新。
+*   **结构化专业报告**：生成包含 20 多个分析维度的详细报告，支持 Markdown 预览及 CSV 导出，完美适配系统性文献综述 (SLR) 需求。
 
 ### 🏗️ 系统架构
 
-*   `src/agents/`：包含不同角色的 LLM 智能体（具备 CoT 的学生，具备严谨逻辑的导师）。
-*   `src/server.py`：基于 FastAPI 的后端，支持 WebSocket 流式传输和静态资源分发。
-*   `src/static/`：基于 Vue 3 + Tailwind CSS 的现代前端界面。
-*   `src/workflow.py`：负责协调多智能体博弈及整体科研工作流。
-*   `src/searcher.py`：Semantic Scholar 与 ArXiv API 集成模块。
-*   `src/pdf_processor.py`：PDF 下载、处理与文本提取核心模块。
-*   `src/code_finder.py`：GitHub 代码检索模块。
+*   `src/agents/`：针对特定角色优化的 LLM 智能体（学生、导师）。
+*   `src/workflow.py`：系统核心逻辑，负责协调博弈流程与研究阶段。
+*   `src/searcher.py`：集成多查询策略的高级学术搜索引擎。
+*   `src/pdf_processor.py`：稳健的 PDF 下载与文本解析模块。
+*   `src/server.py`：支持 WebSocket 实时通信的 FastAPI 后端。
+*   `src/static/`：采用 Vue 3 和 Tailwind CSS 构建的响应式前端。
 
 ### 🚀 快速上手
 
 #### 环境要求
-*   Python 3.10+
-*   [Ollama](https://ollama.com/) (推荐模型：`qwen2.5:7b`)
-*   支持 CUDA 的 GPU (可选，推荐以提升推理速度)
+*   **Python 3.10+**
+*   **[Ollama](https://ollama.com/)**: 请确保已在本地安装并运行。
+*   **默认模型**: `qwen2.5:7b` (因其卓越的推理能力及中英双语支持而被推荐)。
 
 #### 安装步骤
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/FindUrCite.git
+git clone https://github.com/your-username/FindUrCite.git
 cd FindUrCite
 
-# 使用清华源快速安装依赖
+# 安装依赖 (推荐使用清华源以获得更快的下载速度)
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
-#### 使用方法
+#### 运行系统
+1.  **启动 Web 界面 (推荐)**:
+    ```bash
+    python src/server.py
+    ```
+    访问地址：`http://localhost:8000`。
 
-**1. 启动 Web 服务器 (推荐)**
-```bash
-python src/server.py
-```
-在浏览器中访问 `http://localhost:8000` 即可进入现代科研控制面板。
-
-**2. 通过批处理脚本启动 (命令行)**
-双击 `run_system.bat` 或在终端运行：
-```bash
-run_system.bat
-```
-
-### 🛠️ 维护与质量保证
-我们通过 `error_log.md` 统一记录、解决并预防重复性错误，确保系统的可靠性与持续优化。
+2.  **命令行运行**:
+    ```bash
+    python src/main.py "在此处输入您的研究想法或摘要"
+    ```
 
 ---
 
 ## 📜 License / 许可证
-MIT License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+本项目采用 MIT 许可证 - 详情请参阅 [LICENSE](LICENSE) 文件。
