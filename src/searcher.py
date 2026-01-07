@@ -123,11 +123,14 @@ class Searcher:
     def search_multiple_queries(self, queries, limit_per_source=5, keywords_filter=None):
         """
         Executes search for multiple queries and applies keyword filtering if provided.
+        Adaptive: If strict filtering returns too few results, it relaxes constraints.
         keywords_filter: list of strings. If provided, checks if abstract/title contains any of them.
         """
-        final_results = []
         seen_titles = set()
         
+        # Store all candidates before filtering for fallback
+        all_candidates = [] 
+
         # Pre-process keywords for case-insensitive matching
         filter_terms = [k.lower().strip() for k in keywords_filter] if keywords_filter else []
 
@@ -139,7 +142,6 @@ class Searcher:
             results = self.search_all(q, limit_per_source=limit_per_source)
             for res in results:
                 normalized_title = res['title'].lower().strip()
-                abstract_text = (res.get('abstract') or "").lower()
                 
                 # Deduplication
                 if normalized_title in seen_titles:
@@ -150,25 +152,52 @@ class Searcher:
                 if not res.get('abstract') or len(res.get('abstract')) < 50:
                     continue
                 
-                # Strict Keyword Filtering
-                # If filters are provided, at least one keyword MUST be present in title or abstract
-                if filter_terms:
-                    # Check if any keyword matches
-                    # We look for simple substring match. 
-                    # For more strictness, we could check word boundaries, but substring is safer for variations.
-                    match_found = False
-                    combined_text = normalized_title + " " + abstract_text
-                    
-                    for term in filter_terms:
-                        if term in combined_text:
-                            match_found = True
-                            break
-                    
-                    if not match_found:
-                        # Skip this result as it doesn't contain any of the required keywords
-                        continue
-
                 seen_titles.add(normalized_title)
-                final_results.append(res)
+                all_candidates.append(res)
+
+        # Apply Filtering
+        filtered_results = []
         
-        return final_results
+        if filter_terms:
+            for res in all_candidates:
+                normalized_title = res['title'].lower().strip()
+                abstract_text = (res.get('abstract') or "").lower()
+                combined_text = normalized_title + " " + abstract_text
+                
+                match_found = False
+                for term in filter_terms:
+                    if term in combined_text:
+                        match_found = True
+                        break
+                
+                if match_found:
+                    filtered_results.append(res)
+        else:
+            filtered_results = all_candidates
+
+        # ADAPTIVE LOGIC: If too few results, fill up from all_candidates
+        min_results = 5
+        if len(filtered_results) < min_results and len(all_candidates) > len(filtered_results):
+            # Find candidates that were rejected
+            rejected = [p for p in all_candidates if p not in filtered_results]
+            
+            # Sort rejected by citations (if available) as a proxy for quality/relevance probability
+            # Handle 'N/A' or None citations
+            def get_citations(p):
+                c = p.get('citations')
+                if isinstance(c, int): return c
+                if isinstance(c, str) and c.isdigit(): return int(c)
+                return 0
+            
+            rejected.sort(key=get_citations, reverse=True)
+            
+            # Fill up to min_results * 2 (give a bit more options)
+            needed = (min_results * 2) - len(filtered_results)
+            # Add a note to these fallback papers
+            fallback_papers = rejected[:needed]
+            for p in fallback_papers:
+                p['adaptive_fallback'] = True # Mark as fallback
+            
+            filtered_results.extend(fallback_papers)
+            
+        return filtered_results

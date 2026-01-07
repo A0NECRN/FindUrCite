@@ -5,3 +5,7 @@ beautifulsoup4
 markdown
 PyMuPDF
 streamlit
+fastapi
+uvicorn
+python-multipart
+websockets

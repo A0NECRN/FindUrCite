@@ -14,12 +14,34 @@ class StudentAgent(BaseAgent):
         ...
         
         Task: Perform a deep analysis. Extract all required fields.
+        Evaluate the paper on multiple dimensions (Scale: 0-10).
+        
         Output JSON only.
         
         Required Fields:
-        relevance_score, match_reasoning, sub_field, problem_def, methodology, 
-        method_keywords, algorithm_summary, experiments, limitations, critique, 
-        datasets, others, evidence_quotes
+        - scores: {{
+            "relevance": (0-10) How strictly it addresses the user's core problem,
+            "innovation": (0-10) Novelty of the proposed method,
+            "reliability": (0-10) Experimental rigor and reproducibility,
+            "potential": (0-10) Value for future work or application,
+            "total": (0-10) Overall weighted score
+        }}
+        - match_reasoning: Detailed explanation of the scores.
+        - sub_field
+        - problem_def
+        - methodology
+        - method_keywords
+        - algorithm_summary
+        - experiments
+        - limitations
+        - critique
+        - datasets
+        - others
+        - evidence_quotes: [List of direct quotes supporting your analysis]
+        
+        Constraint:
+        - "relevance" is the most important. If < 5, the paper is likely useless.
+        - Be critical. 9-10 is reserved for seminal works.
         """
         
         response = self.chat([{'role': 'user', 'content': prompt}])
@@ -39,13 +61,19 @@ class StudentAgent(BaseAgent):
         Paper Content Fragment: {paper_content[:10000]}
         
         Task: Revise the analysis to address the critique.
+        Step 1: REFLECTION. Think deeply about the critique. Is the advisor right? Did you overclaim relevance? Did you miss a fatal flaw?
+        Step 2: REVISION. Update the fields based on your reflection.
+        
+        Guidelines:
         - You MUST output a 'defense' field explaining your response to the critique.
-        - If the advisor points out that the paper is IRRELEVANT or lacks evidence, you MUST Lower the 'relevance_score' (e.g., to 1 or 2).
+        - If the advisor points out that the paper is IRRELEVANT or lacks evidence, you MUST Lower the 'scores.relevance' (e.g., to 2 or 3).
+        - Update other scores ('innovation', 'reliability', 'potential') if needed.
+        - Recalculate 'scores.total'.
         - If the advisor demands more evidence and you find it, update 'evidence_quotes'.
         - Be honest: if you cannot defend the relevance, accept the advisor's view.
-        - 'relevance_score' MUST be an integer between 0 and 5.
+        - All scores MUST be integers between 0 and 10.
         
-        Output the full updated JSON, including 'defense'.
+        Output the full updated JSON, including 'defense' and the 'scores' object.
         """
         
         response = self.chat([{'role': 'user', 'content': prompt}])

@@ -7,6 +7,8 @@ research_result*.md
 test_*.md
 research_report.md
 research_output_*/
+research_outputs/
+pdfs/
 tests/research_output_*/
 downloads/
 analysis_cache.json

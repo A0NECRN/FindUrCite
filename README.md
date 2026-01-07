@@ -13,12 +13,12 @@
 
 ### 🌟 Core Capabilities
 
-*   **Multi-Agent Debate (Student-Advisor)**: Features an iterative "Critique-Revision" loop between a **Student Agent** (responsible for drafting analysis) and an **Advisor Agent** (acting as a senior reviewer). This system simulates real-world academic peer review to refine relevance and depth.
+*   **Multi-Agent Debate (Student-Advisor)**: Features an iterative "Critique-Revision" loop between a **Student Agent** (responsible for drafting analysis) and an **Advisor Agent** (acting as a senior reviewer). The system now includes **Dynamic Debate Stages** (Screening vs. Interrogation) and **Student Reflection** mechanisms to ensure deep, dialectic reasoning.
 *   **Adaptive Search Expansion**: Automatically adjusts filtering strictness. If strict keyword matching returns too few results, the system intelligently relaxes constraints and incorporates high-citation candidates to ensure comprehensive coverage.
 *   **Zero-Hallucination Evidence System**: Every analytical claim is strictly backed by direct quotes ("Evidence Quotes") from the source text. Enhanced with **Chain-of-Thought (CoT)** reasoning and strict domain constraints to prevent unrelated linguistic or topical hallucinations.
 *   **Deep Read Pipeline**: Beyond abstracts, the system automatically fetches full-text PDFs, extracts content using advanced methods, and performs multi-round debate analysis on high-relevance papers.
 *   **Modern Web Interface**: A high-performance UI built with **FastAPI**, **WebSockets**, and **Vue 3**. Features real-time progress streaming, integrated PDF viewing, and persistent report access.
-*   **Robust Scoring System**: Implements a strict 0-5 relevance scoring mechanism with automated normalization and type safety to ensure consistent and reliable evaluations.
+*   **Advanced Multi-Dimensional Scoring**: Implements a granular 0-10 scoring system across four key dimensions: **Relevance**, **Innovation**, **Reliability**, and **Potential**. Features automated normalization and type safety.
 
 ### 🏗️ Technical Architecture
 
@@ -47,7 +47,14 @@ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 #### Running the System
-1.  **Start the Web Interface (Recommended)**:
+1.  **One-Click Startup (Windows)**:
+    Simply double-click `run.bat`. This script will automatically:
+    - Check for Python and Ollama.
+    - Create a virtual environment and install dependencies.
+    - Pull the required LLM model (`qwen2.5:7b`).
+    - Start the server and open the web interface.
+
+2.  **Manual Web Start**:
     ```bash
     python src/server.py
     ```
@@ -68,11 +75,12 @@ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 ### 🌟 核心功能
 
+*   **多智能体博弈 (Student-Advisor)**：模拟真实学术评审流程，通过学生与导师智能体之间的多轮“质询-修改”循环提升分析深度。现已引入**动态辩论阶段**（初筛 vs. 深度质询）及**学生反思机制**，确保辩论过程更具逻辑性和批判性。
 *   **自适应搜索扩展 (Adaptive Search)**：自动调整过滤强度。当严格关键词匹配结果过少时，系统会智能放宽限制并引入高引用候选论文，确保文献覆盖的全面性。
-*   **零幻觉证据系统**：每一项分析结论均附带原文直接引用（Evidence Quotes）。通过引入 **思维链 (CoT)** 推理和严格的领域约束，有效杜绝了无关语言（如 Arabic）或主题的幻觉。
+*   **零幻觉证据系统**：每一项分析结论均附带原文直接引用（Evidence Quotes）。通过引入 **思维链 (CoT)** 推理和严格的领域约束，有效杜绝了无关语言或主题的幻觉。
 *   **深度阅读流水线**：不仅限于摘要。系统自动获取 PDF 全文，利用先进技术提取文本，并针对高相关性论文进行多轮博弈分析。
 *   **现代化 Web 界面**：基于 **FastAPI**、**WebSockets** 和 **Vue 3** 构建。支持实时进度流式显示、集成 PDF 查看以及报告的持久化访问。
-*   **稳健的评分机制**：实现严格的 0-5 相关性评分体系，具备自动归一化和类型安全检查，确保评价结果的一致性与可靠性。
+*   **高级多维度评分机制**：实现 0-10 分制的精细化评分，覆盖 **相关性**、**创新性**、**可靠性** 和 **潜力** 四大维度，具备自动归一化和类型安全检查。
 
 ### 🏗️ 系统架构
 
@@ -101,7 +109,14 @@ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 #### 运行系统
-1.  **启动 Web 界面 (推荐)**:
+1.  **一键启动 (Windows)**:
+    直接双击运行根目录下的 `run.bat`。该脚本将自动完成：
+    - Python 环境及 Ollama 状态检查。
+    - 自动创建虚拟环境并安装依赖。
+    - 自动拉取所需的 LLM 模型 (`qwen2.5:7b`)。
+    - 启动服务器并自动打开浏览器。
+
+2.  **手动启动 Web 界面**:
     ```bash
     python src/server.py
     ```

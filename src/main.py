@@ -239,7 +239,7 @@ def generate_report(user_input, results, output_dir, filename="research_result.m
                 "Please verify with the original papers.\n\n")
 
         headers = [
-            "序号", "竞品/关键 paper 题目", "年份", "等级\n(1-5，5最优)", "契合度分析", "关键词", 
+            "序号", "竞品/关键 paper 题目", "年份", "Scores (0-10)", "契合度分析", "关键词", 
             "发表期刊/会议，等级", "作者信息", "单位信息", "细分领域", "链接", "PDF",
             "解决了什么问题 + 问题数学定义", 
             "解决了什么瓶颈问题？用的什么方法？", 
@@ -290,11 +290,17 @@ def generate_report(user_input, results, output_dir, filename="research_result.m
             else:
                 evidence_str = str(evidence)
 
+            scores = a.get('scores', {})
+            if not scores:
+                 score_val = str(a.get('relevance_score', 0))
+            else:
+                 score_val = "<br>".join([f"<b>{k.title()}</b>: {v}" for k,v in scores.items()])
+
             row = [
                 str(i + 1),
                 clean(p.get('title', 'N/A')),
                 str(p.get('year', 'N/A')),
-                str(a.get('relevance_score', 0)),
+                score_val,
                 clean(a.get('match_reasoning', 'N/A')),
                 clean(", ".join(p.get('keywords', [])[:3]) if p.get('keywords') else "N/A"),
                 clean(p.get('venue', 'N/A')), 
@@ -313,9 +319,8 @@ def generate_report(user_input, results, output_dir, filename="research_result.m
                 code_str,
                 clean(a.get('datasets', 'N/A')),
                 clean(a.get('others', 'N/A')),
-                clean(evidence_str)
+                evidence_str
             ]
-            
             f.write("| " + " | ".join(row) + " |\n")
     
     # print(f"[Main] Report generated: {filename}")

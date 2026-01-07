@@ -9,6 +9,22 @@ class WorkflowOrchestrator:
         self.advisor = AdvisorAgent(model)
         self.cache = AnalysisCache()
 
+    def _normalize_score(self, score_val):
+        # Handle dict input (if someone passes the full scores object)
+        if isinstance(score_val, dict):
+            if 'relevance' in score_val:
+                score_val = score_val['relevance']
+            elif 'total' in score_val:
+                score_val = score_val['total']
+            else:
+                return 0
+        
+        try:
+            val = float(score_val)
+            return max(0, min(10, val))
+        except (ValueError, TypeError):
+            return 0
+
     def analyze_paper_with_debate(self, user_viewpoint, paper, full_text=None, callback=None):
         """
         Executes the debate.
@@ -30,15 +46,32 @@ class WorkflowOrchestrator:
 
         # print(f"  [Debate] Initial analysis by Student...")
         analysis = self.student.analyze_initial(user_viewpoint, paper['title'], content_to_analyze)
+        
+        # Post-process analysis to ensure compatibility
+        if 'scores' in analysis and isinstance(analysis['scores'], dict):
+            # Map relevance score to top level for compatibility
+            analysis['relevance_score'] = self._normalize_score(analysis['scores'].get('relevance', 0))
+        else:
+            # Fallback if student agent failed to follow new format
+            analysis['scores'] = {
+                'relevance': self._normalize_score(analysis.get('relevance_score', 0)),
+                'total': self._normalize_score(analysis.get('relevance_score', 0))
+            }
+            analysis['relevance_score'] = analysis['scores']['relevance']
+        
+        # Initial Score Clamping
+        analysis['relevance_score'] = self._normalize_score(analysis.get('relevance_score', 0))
+        
         if callback:
-            callback({'role': 'student', 'content': f"**[Student Analysis]**\n\n**Relevance Score:** {analysis.get('relevance_score')}/5\n\n**Why it matches:** {analysis.get('match_reasoning')}", 'type': 'analysis', 'data': analysis})
+            scores_display = "\n".join([f"- **{k.title()}**: {v}/10" for k, v in analysis.get('scores', {}).items()])
+            callback({'role': 'student', 'content': f"**[Student Analysis]**\n\n**Scores (0-10):**\n{scores_display}\n\n**Why it matches:** {analysis.get('match_reasoning')}", 'type': 'analysis', 'data': analysis})
         
         # DYNAMIC DEBATE: Continue until consensus or max limit
         max_debate_rounds = 6
         
         for i in range(max_debate_rounds):
             # Advisor Review
-            review = self.advisor.review_analysis(analysis, content_to_analyze)
+            review = self.advisor.review_analysis(analysis, content_to_analyze, debate_round=i)
             
             # Case 1: Approval
             if review.get('is_approved'):
@@ -47,14 +80,20 @@ class WorkflowOrchestrator:
                 break # Consensus Reached: Accepted
 
             # Case 2: Check for Early Rejection Consensus
-            # If both agree it's irrelevant (Score < 3)
-            advisor_score = review.get('score_correction')
-            student_score = analysis.get('relevance_score', 0)
+            # If both agree it's irrelevant (Score < 5, threshold increased for 10-scale)
+            advisor_score_val = review.get('score_correction')
+            advisor_score = self._normalize_score(advisor_score_val) if advisor_score_val is not None else None
             
-            if advisor_score is not None and advisor_score < 3 and student_score < 3:
-                 if callback:
-                    callback({'role': 'advisor', 'content': "**[Advisor Decision]** ❌ Analysis Rejected (Consensus: Irrelevant).", 'type': 'rejection'})
-                 break
+            student_score = self._normalize_score(analysis.get('relevance_score', 0))
+            
+            # Rejection Threshold: 5/10 (equivalent to 2.5/5)
+            rejection_threshold = 5 
+            
+            if advisor_score is not None:
+                if advisor_score < rejection_threshold and student_score < rejection_threshold:
+                     if callback:
+                        callback({'role': 'advisor', 'content': "**[Advisor Decision]** ❌ Analysis Rejected (Consensus: Irrelevant).", 'type': 'rejection'})
+                     break
             
             # Send Critique
             if callback:
@@ -70,23 +109,31 @@ class WorkflowOrchestrator:
             # Student decides whether to accept the critique and update the score
             analysis = self.student.revise_analysis(analysis, review.get('critique'), content_to_analyze)
             
-            # Ensure score is within bounds (0-5)
-            try:
-                score = int(analysis.get('relevance_score', 0))
-                analysis['relevance_score'] = max(0, min(5, score))
-            except:
-                analysis['relevance_score'] = 0
+            # Sync scores again
+            if 'scores' in analysis and isinstance(analysis['scores'], dict):
+                analysis['relevance_score'] = self._normalize_score(analysis['scores'].get('relevance', 0))
+            else:
+                # Fallback
+                 analysis['scores'] = {
+                    'relevance': self._normalize_score(analysis.get('relevance_score', 0)),
+                    'total': self._normalize_score(analysis.get('relevance_score', 0))
+                }
+
+            # Ensure score is within bounds (0-10)
+            analysis['relevance_score'] = self._normalize_score(analysis.get('relevance_score', 0))
 
             if callback:
                 defense = analysis.get('defense', 'I have updated the analysis.')
-                callback({'role': 'student', 'content': f"**[Student Revision (Round {i+1})]**\n\n**Defense:** {defense}\n\n**New Score:** {analysis.get('relevance_score')}/5", 'type': 'revision', 'data': analysis})
+                scores_display = "\n".join([f"- **{k.title()}**: {v}/10" for k, v in analysis.get('scores', {}).items()])
+                callback({'role': 'student', 'content': f"**[Student Revision (Round {i+1})]**\n\n**Defense:** {defense}\n\n**New Scores:**\n{scores_display}", 'type': 'revision', 'data': analysis})
 
             # Check for Rejection Consensus AFTER revision
-            student_score = analysis.get('relevance_score', 0)
-            if advisor_score is not None and advisor_score < 3 and student_score < 3:
-                 if callback:
-                    callback({'role': 'advisor', 'content': "**[Advisor Decision]** ❌ Analysis Rejected (Consensus: Irrelevant).", 'type': 'rejection'})
-                 break
+            student_score = self._normalize_score(analysis.get('relevance_score', 0))
+            if advisor_score is not None:
+                if advisor_score < rejection_threshold and student_score < rejection_threshold:
+                     if callback:
+                        callback({'role': 'advisor', 'content': "**[Advisor Decision]** ❌ Analysis Rejected (Consensus: Irrelevant).", 'type': 'rejection'})
+                     break
 
         self.cache.set(user_viewpoint, content_to_analyze, analysis)
         return analysis
@@ -127,6 +174,7 @@ class WorkflowOrchestrator:
     def _get_empty_analysis(self, reason):
         return {
             "relevance_score": 0,
+            "scores": {"relevance": 0, "total": 0},
             "match_reasoning": reason,
             "sub_field": reason,
             "problem_def": reason,
