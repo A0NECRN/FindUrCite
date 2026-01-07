@@ -1,5 +1,5 @@
-# FindUrCite: AI-Powered Research Assistant with Multi-Agent Debate
-# FindUrCite: 基于多智能体博弈的 AI 科研助手
+# FindUrCite: AI-Powered Research Assistant with Multi-Agent Dialectical Debate
+# FindUrCite: 基于多智能体辩证博弈的 AI 科研深度分析系统
 
 [English](#english) | [中文](#chinese)
 
@@ -9,61 +9,65 @@
 
 ## 🇬🇧 English
 
-**FindUrCite** is a state-of-the-art academic research automation framework designed to transform how researchers discover, analyze, and synthesize literature. By integrating a **Multi-Agent Debate System** with robust search and processing pipelines, it ensures that every research insight is rigorous, evidence-based, and free from common AI hallucinations.
+**FindUrCite** is a professional-grade academic research automation framework designed to mitigate LLM hallucinations and enhance the rigor of literature analysis. By implementing a **Dialectical Multi-Agent System (MAS)**, it simulates a high-stakes academic defense between a **Student Agent** and a **Senior Advisor Agent**, ensuring that every research insight is grounded in empirical evidence.
 
-### 🌟 Core Capabilities
+### 核心设计哲学 / Core Philosophy: "Dialectic over Generative"
+Unlike traditional AI tools that merely summarize, FindUrCite **challenges** findings. It treats every paper as a hypothesis that must survive a multi-round "adversarial interrogation" before being accepted into the final report.
 
-*   **Multi-Agent Debate (Student-Advisor)**: Features an iterative "Critique-Revision" loop between a **Student Agent** (responsible for drafting analysis) and an **Advisor Agent** (acting as a senior reviewer). The system now includes **Dynamic Debate Stages** (Screening vs. Interrogation) and **Student Reflection** mechanisms to ensure deep, dialectic reasoning.
-*   **Adaptive Search Expansion**: Automatically adjusts filtering strictness. If strict keyword matching returns too few results, the system intelligently relaxes constraints and incorporates high-citation candidates to ensure comprehensive coverage.
-*   **Zero-Hallucination Evidence System**: Every analytical claim is strictly backed by direct quotes ("Evidence Quotes") from the source text. Enhanced with **Chain-of-Thought (CoT)** reasoning and strict domain constraints to prevent unrelated linguistic or topical hallucinations.
-*   **Deep Read Pipeline**: Beyond abstracts, the system automatically fetches full-text PDFs, extracts content using advanced methods, and performs multi-round debate analysis on high-relevance papers.
-*   **Modern Web Interface**: A high-performance UI built with **FastAPI**, **WebSockets**, and **Vue 3**. Features real-time progress streaming, integrated PDF viewing, and persistent report access.
-*   **Advanced Multi-Dimensional Scoring**: Implements a granular 0-10 scoring system across four key dimensions: **Relevance**, **Innovation**, **Reliability**, and **Potential**. Features automated normalization and type safety.
+---
+
+### 🌟 Key Capabilities
+
+#### 1. Dialectical Multi-Agent Debate (Student-Advisor Loop)
+The system orchestrates a sophisticated interaction between two specialized LLM personas:
+*   **Student Agent**: Responsible for initial hypothesis generation, deep reading, and evidence extraction.
+*   **Advisor Agent**: Acts as a "Devil's Advocate." It performs strict evidence-checking, identifies logical inconsistencies, and challenges the relevance of the paper to the user's specific context.
+*   **Dynamic Debate Phases**:
+    *   **Phase 1: Screening**: Rapid relevance and validity check.
+    *   **Phase 2: Interrogation**: For high-potential papers, the Advisor demands direct quotes and scrutinizes methodology, forcing the Student to "reflect" and "defend" their analysis.
+
+#### 2. Advanced Multi-Dimensional Scoring (0-10 Granularity)
+Each candidate paper is evaluated across four critical academic dimensions:
+*   **Relevance**: Degree of alignment with the user's core research problem.
+*   **Innovation**: Novelty of the proposed methodology or theoretical framework.
+*   **Reliability**: Technical rigor, experimental design, and reproducibility.
+*   **Potential**: Strategic value for future research and gap filling.
+
+#### 3. Zero-Hallucination Evidence System
+Utilizing a **Chain-of-Thought (CoT)** reasoning engine, the system enforces a strict "No Evidence, No Claim" policy. Every analytical point must be mapped to a direct quote from the source text, ensuring the output is purely evidence-grounded.
+
+#### 4. Heuristic Search & Deep Read Pipeline
+*   **Adaptive Search**: Automatically expands or constrains search queries based on initial result quality.
+*   **Full-Text Extraction**: Automatically downloads and parses PDFs for high-relevance candidates, performing analysis on the actual body text rather than just the abstract.
+
+---
 
 ### 🏗️ Technical Architecture
 
-*   `src/agents/`: Specialized LLM personas (Student, Advisor) with distinct reasoning chains.
-*   `src/workflow.py`: The "brain" of the system, orchestrating the debate logic and research stages.
-*   `src/searcher.py`: Advanced multi-query engine for academic discovery.
-*   `src/pdf_processor.py`: Robust handling of PDF downloads and text extraction.
-*   `src/server.py`: FastAPI backend supporting real-time WebSocket communication.
-*   `src/static/`: Modern, responsive frontend built with Vue 3 and Tailwind CSS.
+*   **`src/agents/`**: Optimized LLM personas with distinct system prompts and reasoning chains.
+*   **`src/workflow.py`**: The orchestration engine managing the state-machine of the debate and consensus reaching.
+*   **`src/pdf_processor.py`**: Robust PDF ingestion and semantic text extraction.
+*   **`src/server.py`**: High-concurrency FastAPI backend with WebSocket-based real-time event streaming.
+
+---
 
 ### 🚀 Getting Started
 
 #### Prerequisites
 *   **Python 3.10+**
-*   **[Ollama](https://ollama.com/)**: Installed and running locally.
-*   **Default Model**: `qwen2.5:7b` (recommended for its strong reasoning and bilingual capabilities).
+*   **[Ollama](https://ollama.com/)**: Local LLM inference engine.
+*   **Recommended Model**: `qwen2.5:7b` or higher for optimal dialectical reasoning.
 
-#### Installation
+#### One-Click Installation (Windows)
+FindUrCite provides a fully automated deployment script. Simply run:
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/FindUrCite.git
-cd FindUrCite
-
-# Install dependencies (using Tsinghua mirror for optimized speed in China)
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+run.bat
 ```
-
-#### Running the System
-1.  **One-Click Startup (Windows)**:
-    Simply double-click `run.bat`. This script will automatically:
-    - Check for Python and Ollama.
-    - Create a virtual environment and install dependencies.
-    - Pull the required LLM model (`qwen2.5:7b`).
-    - Start the server and open the web interface.
-
-2.  **Manual Web Start**:
-    ```bash
-    python src/server.py
-    ```
-    Access the UI at `http://localhost:8000`.
-
-2.  **Command Line Usage**:
-    ```bash
-    python src/main.py "Your research idea or abstract here"
-    ```
+This script automates:
+1. Environment verification (Python, Ollama).
+2. Virtual environment (`venv`) initialization and dependency installation.
+3. Automated model pulling (`ollama pull qwen2.5:7b`).
+4. Server deployment and automatic browser launch.
 
 ---
 
@@ -71,64 +75,58 @@ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 ## 🇨🇳 中文
 
-**FindUrCite** 是一款尖端的自动化科研助手，旨在彻底改变科研人员检索、分析和综述文献的方式。通过将**多智能体博弈系统**与强大的搜索和处理流水线相结合，它确保了每一项研究见解都具备严谨性、证据支撑，并有效杜绝了 AI 常见的幻觉问题。
+**FindUrCite** 是一款面向专业科研人员的自动化文献深度分析系统。它通过构建**辩证式多智能体博弈 (MAS)** 架构，模拟了导师（Advisor）与学生（Student）之间的学术辩论，旨在解决大语言模型在科研分析中的“幻觉”问题，确保每一项结论都具备严谨的证据支撑。
 
-### 🌟 核心功能
-
-*   **多智能体博弈 (Student-Advisor)**：模拟真实学术评审流程，通过学生与导师智能体之间的多轮“质询-修改”循环提升分析深度。现已引入**动态辩论阶段**（初筛 vs. 深度质询）及**学生反思机制**，确保辩论过程更具逻辑性和批判性。
-*   **自适应搜索扩展 (Adaptive Search)**：自动调整过滤强度。当严格关键词匹配结果过少时，系统会智能放宽限制并引入高引用候选论文，确保文献覆盖的全面性。
-*   **零幻觉证据系统**：每一项分析结论均附带原文直接引用（Evidence Quotes）。通过引入 **思维链 (CoT)** 推理和严格的领域约束，有效杜绝了无关语言或主题的幻觉。
-*   **深度阅读流水线**：不仅限于摘要。系统自动获取 PDF 全文，利用先进技术提取文本，并针对高相关性论文进行多轮博弈分析。
-*   **现代化 Web 界面**：基于 **FastAPI**、**WebSockets** 和 **Vue 3** 构建。支持实时进度流式显示、集成 PDF 查看以及报告的持久化访问。
-*   **高级多维度评分机制**：实现 0-10 分制的精细化评分，覆盖 **相关性**、**创新性**、**可靠性** 和 **潜力** 四大维度，具备自动归一化和类型安全检查。
-
-### 🏗️ 系统架构
-
-*   `src/agents/`：针对特定角色优化的 LLM 智能体（学生、导师）。
-*   `src/workflow.py`：系统核心逻辑，负责协调博弈流程与研究阶段。
-*   `src/searcher.py`：集成多查询策略的高级学术搜索引擎。
-*   `src/pdf_processor.py`：稳健的 PDF 下载与文本解析模块。
-*   `src/server.py`：支持 WebSocket 实时通信的 FastAPI 后端。
-*   `src/static/`：采用 Vue 3 和 Tailwind CSS 构建的响应式前端。
-
-### 🚀 快速上手
-
-#### 环境要求
-*   **Python 3.10+**
-*   **[Ollama](https://ollama.com/)**: 请确保已在本地安装并运行。
-*   **默认模型**: `qwen2.5:7b` (因其卓越的推理能力及中英双语支持而被推荐)。
-
-#### 安装步骤
-```bash
-# 克隆仓库
-git clone https://github.com/your-username/FindUrCite.git
-cd FindUrCite
-
-# 安装依赖 (推荐使用清华源以获得更快的下载速度)
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-```
-
-#### 运行系统
-1.  **一键启动 (Windows)**:
-    直接双击运行根目录下的 `run.bat`。该脚本将自动完成：
-    - Python 环境及 Ollama 状态检查。
-    - 自动创建虚拟环境并安装依赖。
-    - 自动拉取所需的 LLM 模型 (`qwen2.5:7b`)。
-    - 启动服务器并自动打开浏览器。
-
-2.  **手动启动 Web 界面**:
-    ```bash
-    python src/server.py
-    ```
-    访问地址：`http://localhost:8000`。
-
-2.  **命令行运行**:
-    ```bash
-    python src/main.py "在此处输入您的研究想法或摘要"
-    ```
+### 核心设计哲学：“辩证优于生成”
+不同于传统的 AI 摘要工具，FindUrCite 强调**“质疑”**。它将每一篇论文视为一个需要经受多轮“对抗式质询”的假设，只有通过导师 Agent 严格审核的论文，才能进入最终的合成报告。
 
 ---
 
-## 📜 License / 许可证
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### 🌟 核心功能特性
+
+#### 1. 辩证式多智能体博弈逻辑
+系统通过两个具备不同思维倾向的智能体进行交互：
+*   **学生智能体 (Student)**：负责初步分析、全文阅读及证据提取。
+*   **导师智能体 (Advisor)**：扮演“魔鬼代言人”。负责严格审查证据、识别逻辑矛盾、挑战论文与用户课题的相关性。
+*   **动态博弈阶段**：
+    *   **初筛阶段 (Screening)**：快速评估论文的相关性与基础效度。
+    *   **质询阶段 (Interrogation)**：针对高分论文，导师会强制要求提供原文引证，并对实验细节进行深度挖掘，迫使学生进行“反思”与“辩护”。
+
+#### 2. 精细化多维度评分体系 (0-10 分制)
+系统从四个核心学术维度对文献进行量化评估：
+*   **相关性 (Relevance)**：与用户核心研究问题的契合程度。
+*   **创新性 (Innovation)**：所提方法或理论框架的新颖性。
+*   **可靠性 (Reliability)**：技术严谨性、实验设计及可复现性。
+*   **潜力 (Potential)**：对未来工作的启发价值及补位空间。
+
+#### 3. 零幻觉证据支撑系统
+基于 **思维链 (CoT)** 推理引擎，系统执行严格的“无证据不结论”策略。所有的分析结论必须映射到原文的直接引用（Evidence Quotes），从根本上杜绝了 AI 编造实验数据或结论的可能。
+
+#### 4. 启发式搜索与深度阅读流水线
+*   **自适应搜索**：根据初始搜索质量，智能扩展或收缩查询关键词。
+*   **全文解析**：针对高价值文献，系统自动下载并解析 PDF 全文，跳过摘要表象，深入分析核心算法与实验部分。
+
+---
+
+### 🚀 快速上手
+
+#### 环境准备
+*   **Python 3.10+**
+*   **[Ollama](https://ollama.com/)**: 本地 LLM 推理引擎。
+*   **推荐模型**: `qwen2.5:7b` 或更高版本。
+
+#### 一键启动 (Windows)
+FindUrCite 提供全自动化部署脚本，只需运行：
+```bash
+run.bat
+```
+脚本将自动完成：
+1. 环境检查（Python, Ollama）。
+2. 虚拟环境创建及依赖安装（自动使用清华源）。
+3. 模型自动下载 (`qwen2.5:7b`)。
+4. 启动后端服务并自动打开 Web 研究界面。
+
+---
+
+## 📜 许可证
 本项目采用 MIT 许可证 - 详情请参阅 [LICENSE](LICENSE) 文件。
