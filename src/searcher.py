@@ -120,16 +120,55 @@ class Searcher:
         
         return unique_results
 
-    def search_multiple_queries(self, queries, limit_per_source=5):
+    def search_multiple_queries(self, queries, limit_per_source=5, keywords_filter=None):
+        """
+        Executes search for multiple queries and applies keyword filtering if provided.
+        keywords_filter: list of strings. If provided, checks if abstract/title contains any of them.
+        """
         final_results = []
         seen_titles = set()
         
+        # Pre-process keywords for case-insensitive matching
+        filter_terms = [k.lower().strip() for k in keywords_filter] if keywords_filter else []
+
         for q in queries:
+            # Skip empty queries
+            if not q or len(q.strip()) < 3:
+                continue
+                
             results = self.search_all(q, limit_per_source=limit_per_source)
             for res in results:
                 normalized_title = res['title'].lower().strip()
-                if normalized_title not in seen_titles:
-                    seen_titles.add(normalized_title)
-                    final_results.append(res)
+                abstract_text = (res.get('abstract') or "").lower()
+                
+                # Deduplication
+                if normalized_title in seen_titles:
+                    continue
+                
+                # Basic Relevance Filtering (Heuristic)
+                # If abstract is too short, likely metadata error or not useful
+                if not res.get('abstract') or len(res.get('abstract')) < 50:
+                    continue
+                
+                # Strict Keyword Filtering
+                # If filters are provided, at least one keyword MUST be present in title or abstract
+                if filter_terms:
+                    # Check if any keyword matches
+                    # We look for simple substring match. 
+                    # For more strictness, we could check word boundaries, but substring is safer for variations.
+                    match_found = False
+                    combined_text = normalized_title + " " + abstract_text
+                    
+                    for term in filter_terms:
+                        if term in combined_text:
+                            match_found = True
+                            break
+                    
+                    if not match_found:
+                        # Skip this result as it doesn't contain any of the required keywords
+                        continue
+
+                seen_titles.add(normalized_title)
+                final_results.append(res)
         
         return final_results

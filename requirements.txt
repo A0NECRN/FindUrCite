@@ -4,3 +4,4 @@ feedparser
 beautifulsoup4
 markdown
 PyMuPDF
+streamlit
