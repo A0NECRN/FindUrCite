@@ -347,7 +347,11 @@
                 };
 
                 const renderMarkdown = (text) => {
-                    return marked.parse(text);
+                    if (!text) return "";
+                    // Fix bold text next to Chinese punctuation for better rendering
+                    const fixedText = text.replace(/(\*\*)([“”‘’《》（）【】])/g, '$1 $2')
+                                         .replace(/([“”‘’《》（）【】])(\*\*)/g, '$1 $2');
+                    return marked.parse(fixedText);
                 };
                 
                 const downloadReport = () => {
