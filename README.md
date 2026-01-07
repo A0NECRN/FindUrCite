@@ -14,12 +14,11 @@
 ### 🌟 Core Capabilities
 
 *   **Multi-Agent Debate (Student-Advisor)**: Features an iterative "Critique-Revision" loop between a **Student Agent** (responsible for drafting analysis) and an **Advisor Agent** (acting as a senior reviewer). This system simulates real-world academic peer review to refine relevance and depth.
-*   **Deep Read Pipeline**: Beyond abstracts, the system automatically fetches full-text PDFs, extracts content using advanced OCR-aware methods, and performs deep analysis on the most promising papers.
-*   **Intelligent Query Expansion**: Automatically generates multi-dimensional search strategies (Broad, Specific, and Niche) to maximize discovery across **Semantic Scholar**, **ArXiv**, and other academic databases.
-*   **Automated Code & Implementation Discovery**: Simultaneously searches **GitHub** for open-source implementations, providing star counts and direct links to bridge the gap between theoretical research and practical execution.
-*   **Zero-Hallucination Evidence System**: Every analytical claim is strictly backed by direct quotes ("Evidence Quotes") from the source text, ensuring 100% traceability and reliability.
-*   **Modern Web Interface**: A high-performance UI built with **FastAPI**, **WebSockets**, and **Vue 3**, providing real-time streaming updates of the research progress.
-*   **Structured Professional Reporting**: Generates comprehensive Markdown and CSV-ready reports with over 20 analytical dimensions, ideal for systematic literature reviews (SLR).
+*   **Adaptive Search Expansion**: Automatically adjusts filtering strictness. If strict keyword matching returns too few results, the system intelligently relaxes constraints and incorporates high-citation candidates to ensure comprehensive coverage.
+*   **Zero-Hallucination Evidence System**: Every analytical claim is strictly backed by direct quotes ("Evidence Quotes") from the source text. Enhanced with **Chain-of-Thought (CoT)** reasoning and strict domain constraints to prevent unrelated linguistic or topical hallucinations.
+*   **Deep Read Pipeline**: Beyond abstracts, the system automatically fetches full-text PDFs, extracts content using advanced methods, and performs multi-round debate analysis on high-relevance papers.
+*   **Modern Web Interface**: A high-performance UI built with **FastAPI**, **WebSockets**, and **Vue 3**. Features real-time progress streaming, integrated PDF viewing, and persistent report access.
+*   **Robust Scoring System**: Implements a strict 0-5 relevance scoring mechanism with automated normalization and type safety to ensure consistent and reliable evaluations.
 
 ### 🏗️ Technical Architecture
 
@@ -69,13 +68,11 @@ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 ### 🌟 核心功能
 
-*   **多智能体博弈 (导师-学生模型)**：模拟真实的学术审稿流程。**学生智能体**负责起草初步分析，**导师智能体**作为资深评审进行质疑与修正。通过多轮迭代辩论，不断提升分析的相关性与深度。
-*   **深度阅读流水线 (Deep Read Pipeline)**：不仅限于摘要分析。系统会自动获取 PDF 全文，利用先进的文本提取技术，对最具潜力的论文进行全方位深度解析。
-*   **智能搜索策略扩展**：自动生成多维度搜索查询（广度、精度、深度），全面覆盖 **Semantic Scholar** 和 **ArXiv** 等学术数据库，最大程度挖掘潜在参考文献。
-*   **自动化代码发现**：同步检索 **GitHub** 开源实现，提供 Star 数及直接链接，帮助科研人员快速从理论研究走向代码落地。
-*   **零幻觉证据系统**：每一项分析结论均附带原文直接引用（Evidence Quotes），确保所有结论 100% 可追溯、可验证。
-*   **现代化 Web 界面**：基于 **FastAPI**、**WebSockets** 和 **Vue 3** 构建的高性能 UI，支持科研全过程的实时流式状态更新。
-*   **结构化专业报告**：生成包含 20 多个分析维度的详细报告，支持 Markdown 预览及 CSV 导出，完美适配系统性文献综述 (SLR) 需求。
+*   **自适应搜索扩展 (Adaptive Search)**：自动调整过滤强度。当严格关键词匹配结果过少时，系统会智能放宽限制并引入高引用候选论文，确保文献覆盖的全面性。
+*   **零幻觉证据系统**：每一项分析结论均附带原文直接引用（Evidence Quotes）。通过引入 **思维链 (CoT)** 推理和严格的领域约束，有效杜绝了无关语言（如 Arabic）或主题的幻觉。
+*   **深度阅读流水线**：不仅限于摘要。系统自动获取 PDF 全文，利用先进技术提取文本，并针对高相关性论文进行多轮博弈分析。
+*   **现代化 Web 界面**：基于 **FastAPI**、**WebSockets** 和 **Vue 3** 构建。支持实时进度流式显示、集成 PDF 查看以及报告的持久化访问。
+*   **稳健的评分机制**：实现严格的 0-5 相关性评分体系，具备自动归一化和类型安全检查，确保评价结果的一致性与可靠性。
 
 ### 🏗️ 系统架构
 
