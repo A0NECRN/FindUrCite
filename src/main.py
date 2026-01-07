@@ -222,6 +222,9 @@ class ResearchPipeline:
         return item, full_text, pdf_path
 
 def generate_report(user_input, results, output_dir, filename="research_result.md", synthesis=None):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        
     report_path = os.path.join(output_dir, filename)
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(f"# Research Report: {user_input}\n\n")

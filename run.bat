@@ -59,8 +59,28 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-:: 5. Check Ollama Service & Model
-echo [5/6] Checking AI Model (qwen2.5:7b)...
+:: 5. Model Selection & Setup
+echo [5/6] Model Selection
+echo ---------------------------------------------------
+echo Select your preferred AI Model:
+echo 1. Qwen 2.5 (7B)    - [Standard] Recommended for 8GB+ RAM/VRAM
+echo 2. Qwen 2.5 (14B)   - [Advanced] Recommended for 16GB+ RAM/VRAM
+echo 3. DeepSeek R1 (7B) - [Reasoning] Good logic, 8GB+ RAM/VRAM
+echo 4. DeepSeek R1 (8B) - [Reasoning+] Stronger logic, 12GB+ RAM/VRAM
+echo ---------------------------------------------------
+set /p model_choice="Enter choice (1-4) [Default: 1]: "
+
+if "%model_choice%"=="2" (
+    set MODEL_NAME=qwen2.5:14b
+) else if "%model_choice%"=="3" (
+    set MODEL_NAME=deepseek-r1:7b
+) else if "%model_choice%"=="4" (
+    set MODEL_NAME=deepseek-r1:8b
+) else (
+    set MODEL_NAME=qwen2.5:7b
+)
+
+echo [INFO] Selected Model: !MODEL_NAME!
 
 :: Check if Ollama service is responsive
 ollama list >nul 2>&1
@@ -72,16 +92,18 @@ if %errorlevel% neq 0 (
 )
 
 :: Check for model
-ollama list | findstr "qwen2.5:7b" >nul
+ollama list | findstr "!MODEL_NAME!" >nul
 if %errorlevel% neq 0 (
-    echo [INFO] Model not found. Downloading qwen2.5:7b...
+    echo [INFO] Model !MODEL_NAME! not found. Downloading...
     echo [INFO] This process depends on your internet speed. Please wait...
-    ollama pull qwen2.5:7b
+    ollama pull !MODEL_NAME!
     if !errorlevel! neq 0 (
         echo [ERROR] Failed to pull model. Please check your internet connection.
         pause
         exit /b
     )
+) else (
+    echo [INFO] Model !MODEL_NAME! is ready.
 )
 
 :: 6. Start Server

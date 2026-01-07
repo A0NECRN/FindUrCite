@@ -1,17 +1,1 @@
-Abstract—We present a cost-aware benchmarking frame-
-work for financial LLMs and validate it through rigor-
-ous empirical analysis. The framework centers on four
-dimensions—performance, frictions, behavior, and gover-
-nance—reporting paired statistics on aligned daily returns with
-multiple-testing control. Under realistic transaction costs, em-
-pirical results indicate limited incremental value from narrative
-signals relative to robust technical baselines, highlighting that
-turnover and market impact often dominate net performance.
-We address common methodological pitfalls—such as data
-leakage, non-stationarity, and missing audit trails—and estab-
-lish transparent reporting standards. Adopting a conservative
-methodology, we prioritize robust verification over broad claims,
-identifying critical pathways for future evidence generation.
-
-Index Terms—Benchmarking, Transaction Costs, Governance,
-Financial AI, Large Language Models
+开发了一款基于多智能体对抗博弈机制的深度学术文献调研助手。针对传统 AI 调研工具易产生“幻觉”、分析浅表化以及缺乏批判性思维等痛点，本项目构建了一个由 StudentAgent（研究员） 与 AdvisorAgent（评审员） 组成的辩证思维模型。通过模拟学术界真实的“审稿-修改”循环，系统不仅能自动检索并提取 PDF 全文，更能在多轮辩论中对论文的创新性、契合度及方法论进行严苛审查。FindUrCite 旨在为科研人员提供一个具备“零幻觉”证据链、多维度量化评分以及深度战略建议的自动化调研工作站。核心创新在于开发了一个智能体之间相互对抗的学术multi-agent系统。

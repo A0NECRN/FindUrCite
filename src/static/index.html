@@ -56,7 +56,13 @@
                 </button>
                 <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md text-sm">
                     <span class="text-slate-500">Model:</span>
-                    <input v-model="modelName" class="bg-transparent border-none outline-none font-medium w-24" placeholder="qwen2.5:7b">
+                    <select v-model="modelName" class="bg-transparent border-none outline-none font-medium text-slate-700 cursor-pointer">
+                        <option value="qwen2.5:7b">Qwen 2.5 (7B) - Standard</option>
+                        <option value="qwen2.5:14b">Qwen 2.5 (14B) - Advanced</option>
+                        <option value="deepseek-r1:7b">DeepSeek R1 (7B) - Reasoning</option>
+                        <option value="deepseek-r1:8b">DeepSeek R1 (8B) - Reasoning+</option>
+                        <option value="llama3.1:8b">Llama 3.1 (8B) - Balanced</option>
+                    </select>
                 </div>
                 <div v-if="status" class="flex items-center gap-2 text-sm font-medium animate-pulse text-indigo-600">
                     <span class="relative flex h-3 w-3">

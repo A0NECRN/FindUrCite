@@ -12,4 +12,5 @@
 | 2026-01-04 | LLM 仅阅读摘要导致分析不够深入，缺乏原文佐证 | 已修复 | 构建“初筛-精读”双阶段流水线，对高分论文自动下载 PDF 并基于全文提取 Evidence Quotes |
 | 2026-01-07 | `TypeError: '<' not supported between instances of 'dict' and 'int'` (Score Normalization) | 已修复 | 在 `WorkflowOrchestrator` 中增加 `_normalize_score` 方法，兼容处理 dict/int 类型输入并进行钳位 |
 | 2026-01-07 | Windows 批处理脚本 `run.bat` 语法错误 (`&` 未转义) | 已修复 | 使用 `^&` 转义字符修复 echo 命令中的特殊符号 |
+| 2026-01-07 | `[Errno 2] No such file or directory` (Report Generation) | 已修复 | 修复路径拼接问题（改用绝对路径）并在写入前增加目录存在性检查 |
 

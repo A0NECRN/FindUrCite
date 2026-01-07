@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import asyncio
+import time
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -22,7 +23,7 @@ if not os.path.exists(static_dir):
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Mount outputs directory
-OUTPUTS_DIR = os.path.join(os.path.dirname(__file__), "..", "research_outputs")
+OUTPUTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "research_outputs"))
 if not os.path.exists(OUTPUTS_DIR):
     os.makedirs(OUTPUTS_DIR)
 app.mount("/outputs", StaticFiles(directory=OUTPUTS_DIR), name="outputs")
@@ -51,7 +52,6 @@ async def websocket_endpoint(websocket: WebSocket):
         # If we pass output_dir, it uses it.
         
         # We want: OUTPUTS_DIR / <timestamp>
-        import time
         run_id = time.strftime("%Y%m%d_%H%M%S")
         run_dir = os.path.join(OUTPUTS_DIR, f"run_{run_id}")
         pdf_dir = os.path.join(run_dir, "pdfs")
