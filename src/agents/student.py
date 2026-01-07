@@ -45,11 +45,10 @@ class StudentAgent(BaseAgent):
         """
         
         response = self.chat([{'role': 'user', 'content': prompt}])
-        if response:
-            try:
-                return json.loads(response)
-            except:
-                pass
+        if response and isinstance(response, dict):
+            return response
+        
+        print(f"[StudentAgent] Analyze Initial Failed. Response type: {type(response)}")
         return {}
 
     def revise_analysis(self, original_analysis, advisor_critique, paper_content):
@@ -77,11 +76,10 @@ class StudentAgent(BaseAgent):
         """
         
         response = self.chat([{'role': 'user', 'content': prompt}])
-        if response:
-            try:
-                return json.loads(response)
-            except:
-                pass
+        if response and isinstance(response, dict):
+            return response
+            
+        print(f"[StudentAgent] Revise Analysis Failed. Response type: {type(response)}")
         return original_analysis
 
     def analyze_user_input(self, text):
@@ -113,11 +111,10 @@ class StudentAgent(BaseAgent):
         }}
         """
         response = self.chat([{'role': 'user', 'content': prompt}])
-        if response:
-            try:
-                return json.loads(response)
-            except:
-                pass
+        if response and isinstance(response, dict):
+            return response
+            
+        print(f"[StudentAgent] Analyze User Input Failed. Response type: {type(response)}")
         return {
             "core_contribution": text[:100],
             "search_queries": [text[:50]],
@@ -163,11 +160,10 @@ class StudentAgent(BaseAgent):
         """
         
         response = self.chat([{'role': 'user', 'content': prompt}])
-        if response:
-            try:
-                return json.loads(response)
-            except:
-                pass
+        if response and isinstance(response, dict):
+            return response
+            
+        print(f"[StudentAgent] Synthesis Failed. Response type: {type(response)}")
         return {
             "state_of_art_summary": "Failed to synthesize.",
             "gap_analysis": "N/A",
