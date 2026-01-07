@@ -93,22 +93,15 @@ class StudentAgent(BaseAgent):
         Step 3: Formulate a 'Key Viewpoint' that encapsulates the user's unique stance or contribution.
         Step 4: Generate search queries. 
            - IMPORTANT: All search queries MUST be in ENGLISH, regardless of the input language.
-           - The queries must be precise and academic.
-           - Example logic (for a topic like "Deep Learning for Weather Forecasting"):
-             * Query 1 (Method & Domain): "Deep learning methods for weather forecasting"
-             * Query 2 (Specific Tech): "Convolutional LSTM for precipitation prediction"
-             * Query 3 (Problem Focus): "Improving long-term forecast accuracy with AI"
-             * Query 4 (SOTA): "State-of-the-art data-driven weather models"
-             * Query 5 (Alternative): "Neural networks in meteorological data analysis"
-           
-           - Apply this logic to the User's Input:
-           - Query 1: Broad intersection of Method & Domain.
-           - Query 2: Specific technical approach or algorithm mentioned.
-           - Query 3: Problem-solving focus (pain points).
-           - Query 4: Similar existing systems or SOTA comparison.
-           - Query 5: A distinct aspect, alternative phrasing, or theoretical framework.
+           - First, identify the <Domain>, <Methodology>, and <Specific Problem> from the input.
+           - Then, generate 5 diverse queries using these components:
+           - Query 1: Intersection of <Methodology> and <Domain>.
+           - Query 2: Specific technical approach or algorithm applied to the <Specific Problem>.
+           - Query 3: Problem-solving focus (e.g., "Improving <Metric> in <Domain> using <Methodology>").
+           - Query 4: Search for similar existing systems or State-of-the-Art (SOTA) in this niche.
+           - Query 5: A distinct aspect, alternative phrasing, or specific sub-task keyword.
         
-        Step 5: Extract 3-5 critical English keywords for filtering.
+        Step 5: Extract 3-5 critical English keywords for filtering. These should be single words or short phrases representing the core technical concepts.
         
         Constraint: Do NOT introduce unrelated concepts, specific languages (e.g. Arabic, Chinese), or domains unless explicitly mentioned in the input.
         
