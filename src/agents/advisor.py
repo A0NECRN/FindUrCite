@@ -4,7 +4,6 @@ import json
 class AdvisorAgent(BaseAgent):
     def review_analysis(self, student_analysis, paper_content, debate_round=0):
         # Determine focus based on round and score
-        # Handle nested scores dict or top-level field
         current_score = 0
         if 'scores' in student_analysis and isinstance(student_analysis['scores'], dict):
             current_score = student_analysis['scores'].get('relevance', 0)
@@ -30,7 +29,8 @@ class AdvisorAgent(BaseAgent):
         Task:
         1. EVIDENCE CHECK: Verify if every claim in 'problem_def' and 'methodology' is supported by the text.
         2. RELEVANCE CHECK: Does this paper TRULY address the user's core problem?
-        3. SCORING CHECK: Review the multi-dimensional scores (0-10).
+        3. HALLUCINATION CHECK: If the student quotes text that is NOT in the fragment, REJECT immediately.
+        4. SCORING CHECK: Review the multi-dimensional scores (0-10).
            - relevance: Is it strictly on topic?
            - innovation: Is the method novel?
            - reliability: Are experiments sound?
@@ -39,7 +39,7 @@ class AdvisorAgent(BaseAgent):
         Constraint: 
         - If 'scores.relevance' > 6, you MUST demand at least 2 direct quotes as evidence.
         - If the methodology is vague, reject.
-        - Be aggressive but fair.
+        - Be aggressive but fair. Do not let hallucinated details pass.
         
         Output JSON:
         {{
@@ -49,13 +49,14 @@ class AdvisorAgent(BaseAgent):
         }}
         """
         
+        # BaseAgent.chat now handles JSON parsing and retries
         response = self.chat([{'role': 'user', 'content': prompt}])
-        if response:
-            try:
-                return json.loads(response)
-            except:
-                pass
-        return {"is_approved": True, "critique": "No critique due to error."}
+        
+        if response and isinstance(response, dict):
+            return response
+            
+        # Fail safe: If error, REJECT to prevent garbage from passing
+        return {"is_approved": False, "critique": "System Error: Advisor failed to generate valid critique (JSON parsing error or timeout)."}
 
     def review_synthesis(self, synthesis, analyzed_papers):
         papers_summary = []
@@ -75,6 +76,7 @@ class AdvisorAgent(BaseAgent):
         1. CRITICAL REVIEW: Does the 'gap_analysis' identify a REAL gap, or just a trivial one?
         2. ACTIONABILITY: Are 'strategic_recommendations' specific enough to implement? (e.g. 'Use Transformer' is bad; 'Use LoRA with rank 16 on Llama 3' is good).
         3. COVERAGE: Did the student miss any major paper from the list?
+        4. RIGOR: Are the claims backed by the papers?
         
         Output JSON:
         {{
@@ -84,9 +86,8 @@ class AdvisorAgent(BaseAgent):
         """
         
         response = self.chat([{'role': 'user', 'content': prompt}])
-        if response:
-            try:
-                return json.loads(response)
-            except:
-                pass
-        return {"is_approved": True, "critique": "No critique."}
+        
+        if response and isinstance(response, dict):
+            return response
+            
+        return {"is_approved": False, "critique": "System Error: Synthesis review failed."}

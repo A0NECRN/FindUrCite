@@ -127,11 +127,6 @@ Initialize the environment and start the service using the provided automation s
 | **Processor** | 负责 PDF 文档的鲁棒性加载、版面分析及语义文本提取。 | `src/pdf_processor.py` |
 | **Server** | 管理 WebSocket 连接生命周期、事件分发及静态资源托管。 | `src/server.py` |
 
-### 🛡️ 开发规范与日志
-
-本项目遵循严格的软件工程规范。
-- **错误追踪**: 所有已知技术问题及其解决方案均详细记录于 [error_log.md](error_log.md)。
-- **版本控制**: 严格分离核心逻辑与用户数据，输出文件默认被 `.gitignore` 排除。
 
 ### 📈 路线图 (Roadmap)
 - [x] **多维度量化评分**: 实现基于相关性、创新性、可靠性、潜力的 0-10 分制评估。
