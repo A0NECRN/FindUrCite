@@ -94,13 +94,21 @@ class StudentAgent(BaseAgent):
         Step 4: Generate search queries. 
            - IMPORTANT: All search queries MUST be in ENGLISH, regardless of the input language.
            - The queries must be precise and academic.
-           - Query 1: Broad intersection of Method & Domain (e.g., "LLM for academic literature review").
-           - Query 2: Specific technical approach (e.g., "Multi-agent system for automated survey").
-           - Query 3: Problem-solving focus (e.g., "Reducing hallucination in scientific writing with agents").
-           - Query 4: Similar existing systems or SOTA (e.g., "Automated research assistant using Large Language Models").
-           - Query 5: A distinct aspect or alternative phrasing (e.g., "Adversarial dialectic in information retrieval").
+           - Example logic (for a topic like "Deep Learning for Weather Forecasting"):
+             * Query 1 (Method & Domain): "Deep learning methods for weather forecasting"
+             * Query 2 (Specific Tech): "Convolutional LSTM for precipitation prediction"
+             * Query 3 (Problem Focus): "Improving long-term forecast accuracy with AI"
+             * Query 4 (SOTA): "State-of-the-art data-driven weather models"
+             * Query 5 (Alternative): "Neural networks in meteorological data analysis"
+           
+           - Apply this logic to the User's Input:
+           - Query 1: Broad intersection of Method & Domain.
+           - Query 2: Specific technical approach or algorithm mentioned.
+           - Query 3: Problem-solving focus (pain points).
+           - Query 4: Similar existing systems or SOTA comparison.
+           - Query 5: A distinct aspect, alternative phrasing, or theoretical framework.
         
-        Step 5: Extract 3-5 critical English keywords for filtering (e.g., "LLM", "Finance", "Transaction Cost").
+        Step 5: Extract 3-5 critical English keywords for filtering.
         
         Constraint: Do NOT introduce unrelated concepts, specific languages (e.g. Arabic, Chinese), or domains unless explicitly mentioned in the input.
         
