@@ -16,7 +16,6 @@ class BaseAgent:
                 response = ollama.chat(model=self.model, messages=messages, format=format_type)
                 content = response['message']['content']
                 
-                # If expecting JSON, try to parse it robustly
                 if format_type == 'json':
                     return self._parse_json_robust(content)
                 
@@ -37,21 +36,16 @@ class BaseAgent:
         if not text:
             return None
 
-        # 1. Remove <think>...</think> blocks (common in DeepSeek R1)
         text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
 
-        # 2. Remove Markdown code blocks ```json ... ```
         text = re.sub(r'```json\s*', '', text)
         text = re.sub(r'```\s*', '', text)
 
-        # 3. Trim whitespace
         text = text.strip()
 
-        # 4. Try parsing
         try:
             return json.loads(text)
         except json.JSONDecodeError:
-            # 5. Fallback: Try to find the first { and last }
             try:
                 match = re.search(r'(\{.*\})', text, re.DOTALL)
                 if match:

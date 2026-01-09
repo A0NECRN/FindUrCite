@@ -129,7 +129,6 @@ class StudentAgent(BaseAgent):
     def synthesize_literature(self, user_context, analyzed_papers, previous_synthesis=None, critique=None):
         papers_summary = []
         for p in analyzed_papers:
-            # Include more details for synthesis
             papers_summary.append(f"- {p['paper']['title']}: {p['analysis'].get('problem_def', 'N/A')} | Method: {p['analysis'].get('methodology', 'N/A')}")
         
         papers_text = "\n".join(papers_summary)

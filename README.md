@@ -20,7 +20,7 @@
 - **Adversarial Dialectical Engine**: Unlike generative summarization tools, FindUrCite employs a dual-agent architecture. The `Advisor Agent` acts as an **Adversarial Reviewer**, conducting multi-round interrogation of the `Student Agent`'s analysis. It challenges the methodology, relevance, and logical consistency of the findings, accepting only those that withstand rigorous scrutiny.
 - **Verifiable Evidence Chain (Zero-Hallucination)**: Implements a strict **"No Citation, No Output"** policy. The system utilizes Chain-of-Thought (CoT) reasoning to ensure that every analytical claim is mapped directly to specific text segments (quotes) within the source PDF, guaranteeing traceability.
 - **Full-Stack Local Research Automation**: Orchestrates a complete closed-loop workflow locally, including semantic search (Semantic Scholar/ArXiv), concurrent PDF acquisition, robust parsing, adversarial debate, multi-dimensional scoring, and comprehensive report synthesis.
-- **Asynchronous Stream Rendering**: Built on a high-concurrency FastAPI backend with WebSocket event streaming, providing real-time visualization of the agent debate process and supporting dynamic model switching without service interruption.
+- **Modern Streamlit UI**: Provides a chat-like interface for real-time interaction, visualizing the debate process and offering direct access to found papers and generated reports.
 - **Privacy-First Architecture**: Optimized for local deployment using **Ollama**, supporting high-performance open-source models (e.g., Qwen 2.5, DeepSeek R1) to ensure the confidentiality of research topics and data.
 
 ### 🏗️ System Architecture
@@ -43,6 +43,15 @@ graph TD
     G --> H[Final Report: 21-Dimension Matrix]
 ```
 
+### 📈 Roadmap
+- [x] **Multi-dimensional Scoring**: 0-10 scoring based on relevance, innovation, reliability, and potential.
+- [x] **Dynamic Interrogation**: Advisor initiates deep questioning for high-scoring papers.
+- [x] **Dynamic Model Switching**: Support seamless model switching at runtime.
+- [x] **Parallel Search & Analysis**: Optimized search and analysis workflows for efficiency.
+- [x] **Session Persistence**: Prevents data loss on page refresh.
+- [ ] **Zotero Integration**: Analyze directly from Zotero libraries.
+- [ ] **Local Knowledge Base**: Support batch review of local PDF folders.
+
 ### 🚀 Quick Start
 
 #### 1. Prerequisites
@@ -64,7 +73,7 @@ Initialize the environment and start the service using the provided automation s
 1. Checks for Python and Ollama dependencies (Auto-installs Ollama if not found).
 2. Creates a virtual environment (`venv`) and installs Python dependencies.
 3. Interactively selects and pulls the specified LLM model.
-4. Launches the backend server and opens the client interface in the default browser.
+4. Launches the Streamlit Web App in your default browser.
 
 ### 📊 Core Modules
 
@@ -73,7 +82,7 @@ Initialize the environment and start the service using the provided automation s
 | **Agents** | Defines the personae, system prompts, and reasoning logic for Student/Advisor agents. | `src/agents/` |
 | **Workflow** | Manages the debate state machine, scoring algorithms, and consensus mechanisms. | `src/workflow.py` |
 | **Processor** | Handles robust PDF ingestion, layout analysis, and semantic text extraction. | `src/pdf_processor.py` |
-| **Server** | Manages WebSocket lifecycle, event distribution, and static resource serving. | `src/server.py` |
+| **Web App** | Streamlit-based UI for interaction and visualization. | `src/web_app.py` |
 
 ---
 
@@ -81,14 +90,14 @@ Initialize the environment and start the service using the provided automation s
 
 ## 🇨🇳 中文介绍
 
-**FindUrCite** 是一款基于**多智能体博弈 (Multi-Agent System)** 架构的自主科研智能体系统。针对大语言模型在学术文献综述中常见的“幻觉”问题，本系统引入了**“学生-导师”对抗辩证机制**。通过模拟严苛的学术答辩过程，强制执行证据链校验，确保每一条研究结论都建立在可追溯的原文证据之上。
+**FindUrCite** 是一款基于**多智能体博弈 (Multi-Agent System)** 架构的自主科研智能体系统。针对大语言模型在学术文献综述中常见的“幻觉”问题，本系统引入了** “学生-导师”对抗辩证机制 **。通过模拟严苛的学术答辩过程，强制执行证据链校验，确保每一条研究结论都建立在可追溯的原文证据之上。
 
 ### 🛠️ 核心技术特性
 
 - **对抗式辩证引擎 (Adversarial Dialectical Engine)**：区别于传统的单向生成式摘要工具，系统内置了双智能体架构。`Advisor Agent` 担任**对抗性审查者 (Adversarial Reviewer)** 的角色，对 `Student Agent` 的分析结论进行多轮次、深层次的质询与挑战。只有逻辑严密、证据确凿的分析才能通过审查。
 - **可验证证据链 (Verifiable Evidence Chain)**：执行严格的 **“无引证，不输出”** 策略。利用思维链 (CoT) 技术，强制要求所有分析观点必须映射到 PDF 原文中的具体文本片段 (Quotes)，从而彻底杜绝信息捏造。
 - **全栈本地化科研自动化**：在本地闭环完成从语义搜索 (Semantic Scholar/ArXiv)、高并发 PDF 获取、鲁棒性解析、对抗博弈分析、多维度评分到最终报告生成的完整工作流。
-- **异步流式渲染**：基于 FastAPI 构建高并发后端，利用 WebSocket 实现事件流传输，在前端实时可视化呈现智能体之间的辩论过程，并支持在运行时动态切换底层推理模型。
+- **现代化 Streamlit 界面**：提供类似聊天的交互界面，实时可视化智能体辩论过程，并支持直接下载论文和生成的研究报告。
 - **隐私优先架构**：专为本地部署设计，深度适配 **Ollama** 推理引擎，支持 Qwen 2.5、DeepSeek R1 等高性能开源模型，严格保障科研课题与数据的私密性。
 
 ### 🏗️ 系统架构
@@ -116,7 +125,7 @@ Initialize the environment and start the service using the provided automation s
 1. 检测系统 Python 环境与 Ollama 服务状态（缺失时自动安装 Ollama）。
 2. 创建独立虚拟环境 (`venv`) 并安装依赖。
 3. 交互式选择并自动拉取指定的大语言模型。
-4. 启动后端服务并自动打开浏览器访问客户端界面。
+4. 启动 Streamlit Web 应用并自动打开浏览器。
 
 ### 📊 核心模块说明
 
@@ -125,13 +134,15 @@ Initialize the environment and start the service using the provided automation s
 | **Agents** | 定义学生/导师智能体的人格设定、系统提示词 (Prompt) 及推理逻辑。 | `src/agents/` |
 | **Workflow** | 管理博弈状态机、评分算法、轮次控制及共识达成机制。 | `src/workflow.py` |
 | **Processor** | 负责 PDF 文档的鲁棒性加载、版面分析及语义文本提取。 | `src/pdf_processor.py` |
-| **Server** | 管理 WebSocket 连接生命周期、事件分发及静态资源托管。 | `src/server.py` |
+| **Web App** | 基于 Streamlit 的交互式前端界面。 | `src/web_app.py` |
 
 
 ### 📈 路线图 (Roadmap)
 - [x] **多维度量化评分**: 实现基于相关性、创新性、可靠性、潜力的 0-10 分制评估。
 - [x] **动态质询机制**: 引入 Advisor 对高分论文的深层追问与反思环节。
 - [x] **多模型动态切换**: 支持运行时无缝切换推理模型。
+- [x] **并行搜索与分析**: 优化搜索和分析流程，大幅提升效率。
+- [x] **持久化会话**: 防止页面刷新导致数据丢失。
 - [ ] **Zotero 生态集成**: 支持直接读取 Zotero 库进行分析。
 - [ ] **本地知识库支持**: 支持导入本地 PDF 文件夹进行批量综述。
 

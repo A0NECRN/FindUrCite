@@ -3,7 +3,6 @@ import json
 
 class AdvisorAgent(BaseAgent):
     def review_analysis(self, student_analysis, paper_content, debate_round=0):
-        # Determine focus based on round and score
         current_score = 0
         if 'scores' in student_analysis and isinstance(student_analysis['scores'], dict):
             current_score = student_analysis['scores'].get('relevance', 0)
@@ -49,13 +48,11 @@ class AdvisorAgent(BaseAgent):
         }}
         """
         
-        # BaseAgent.chat now handles JSON parsing and retries
         response = self.chat([{'role': 'user', 'content': prompt}])
         
         if response and isinstance(response, dict):
             return response
             
-        # Fail safe: If error, REJECT to prevent garbage from passing
         return {"is_approved": False, "critique": "System Error: Advisor failed to generate valid critique (JSON parsing error or timeout)."}
 
     def review_synthesis(self, synthesis, analyzed_papers):

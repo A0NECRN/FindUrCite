@@ -5,7 +5,7 @@ title FindUrCite Launcher
 cd /d "%~dp0"
 
 echo ===================================================
-echo       FindUrCite - One-Click Installer ^& Runner
+echo       FindUrCite - AI Research Assistant
 echo ===================================================
 
 :: 1. Check Python
@@ -121,12 +121,10 @@ if %errorlevel% neq 0 (
     echo [INFO] Model !MODEL_NAME! is ready.
 )
 
-:: 6. Start Server
-echo [6/6] Starting FindUrCite Server...
-echo [INFO] Server will run at http://localhost:8000
-echo [INFO] Press Ctrl+C to stop the server.
+:: 6. Start Web App
+echo [6/6] Starting FindUrCite Web App...
+echo [INFO] Launching Streamlit...
 
-start http://localhost:8000
-python src/server.py
+streamlit run src/web_app.py
 
 pause

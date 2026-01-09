@@ -7,25 +7,21 @@ from pdf_processor import PDFProcessor
 import concurrent.futures
 from workflow import WorkflowOrchestrator
 import logging
-
-# Configure logging to capture output if needed, but for now we'll stick to yield/print
-# We will create a class ResearchPipeline that yields log messages.
+from utils import get_output_dir
 
 class ResearchPipeline:
     def __init__(self, model="qwen2.5:7b", output_dir=None, pdf_dir=None):
         self.model = model
-        self.output_dir = output_dir
-        self.pdf_dir = pdf_dir
         
-        # Determine paths
-        if not self.output_dir:
+        if not output_dir:
             timestamp = time.strftime("%Y%m%d_%H%M%S")
-            self.output_dir = os.path.join(os.getcwd(), f"research_output_{timestamp}")
+            self.output_dir = os.path.join(get_output_dir(), timestamp)
+        else:
+            self.output_dir = output_dir
             
-        if not self.pdf_dir:
+        if not pdf_dir:
             self.pdf_dir = os.path.join(self.output_dir, "pdfs")
             
-        # Ensure directories exist
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
         if not os.path.exists(self.pdf_dir):
@@ -37,12 +33,18 @@ class ResearchPipeline:
         self.pdf_processor = PDFProcessor()
         self.pdf_processor.set_download_dir(self.pdf_dir)
 
+    def _analyze_single_paper(self, paper, key_viewpoint):
+        events = []
+        def callback(event):
+            events.append(event)
+        
+        analysis = self.orchestrator.analyze_paper_with_debate(key_viewpoint, paper, callback=callback)
+        return paper, analysis, events
+
     def run(self, user_text):
         yield {"type": "log", "content": f"Initializing pipeline with model: {self.model}"}
         yield {"type": "log", "content": f"Output Directory: {self.output_dir}"}
-        yield {"type": "log", "content": f"PDF Directory: {self.pdf_dir}"}
-
-        # Step 1: Analyze Input
+        
         yield {"type": "status", "stage": "analyze_input", "content": "Analyzing user input..."}
         input_analysis = self.orchestrator.student.analyze_user_input(user_text)
         
@@ -57,9 +59,7 @@ class ResearchPipeline:
         yield {"type": "log", "content": f"  - Core Contribution: {core_contribution}"}
         yield {"type": "log", "content": f"  - Search Queries: {search_queries}"}
         yield {"type": "log", "content": f"  - English Keywords (Filter): {english_keywords}"}
-        yield {"type": "log", "content": f"  - Key Viewpoint: {key_viewpoint}"}
         
-        # Step 2: Search
         yield {"type": "status", "stage": "search", "content": "Searching papers..."}
         papers = self.searcher.search_multiple_queries(search_queries, limit_per_source=5, keywords_filter=english_keywords)
         if not papers:
@@ -68,86 +68,48 @@ class ResearchPipeline:
 
         yield {"type": "log", "content": f"Found {len(papers)} papers."}
         
-        # Notify about found papers
         for paper in papers:
              yield {"type": "paper_found", "paper": paper}
 
-        # Step 3: Find Code
         yield {"type": "status", "stage": "find_code", "content": "Finding code repositories..."}
         paper_titles = [p['title'] for p in papers]
         code_results = self.code_finder.find_codes_parallel(paper_titles)
         yield {"type": "log", "content": "Code search completed."}
 
-        # Step 4: Analysis Loop
         yield {"type": "status", "stage": "analysis", "content": "Starting Deep Read Pipeline..."}
         final_results = []
         candidates_for_deep_read = []
         
-        # Define callback to yield debate events
-        def debate_callback(event):
-            # We need to bridge the callback to the generator.
-            # Since we can't yield from a callback directly in this structure easily without a queue or refactoring,
-            # We will use a simple list to capture events and yield them after the call (for synchronous parts)
-            # OR better: Refactor orchestrator to be a generator.
-            # But to minimize changes, we'll assume the orchestrator runs synchronously and we can't yield from inside the callback easily 
-            # unless we change the architecture to event-driven or use a queue.
-            # 
-            # HOWEVER, since we are inside a generator `run`, we can't pass `yield` to a callback.
-            # Strategy: The orchestrator.analyze_paper_with_debate is synchronous. 
-            # We will change the architecture slightly: `run` is a generator. 
-            # We will wrap the callback to push to a queue, but that requires threading.
-            # 
-            # SIMPLER APPROACH: 
-            # We already refactored `analyze_paper_with_debate` to accept a callback.
-            # But `run` is a single thread generator. 
-            # We will skip the callback for now and rely on the fact that we can't easily stream granular debate steps 
-            # without making `analyze_paper_with_debate` a generator itself.
-            # 
-            # WAIT: The user wants to see the chat. 
-            # Let's use a queue to capture callback events and yield them.
-            pass
-
-        # Actually, let's make `analyze_paper_with_debate` a generator in workflow.py? 
-        # No, I already modified it to take a callback. 
-        # I will use a helper class to capture events.
-        
-        class EventCapturer:
-            def __init__(self):
-                self.events = []
-            def callback(self, event):
-                self.events.append(event)
-        
-        # Phase 1: Screening
         yield {"type": "log", "content": "Phase 1: Screening Abstracts..."}
-        for i, paper in enumerate(papers):
-            msg = f"[{i+1}/{len(papers)}] Screening: {paper['title'][:30]}..."
-            yield {"type": "log", "content": msg}
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_paper = {executor.submit(self._analyze_single_paper, p, key_viewpoint): p for p in papers}
             
-            capturer = EventCapturer()
-            analysis = self.orchestrator.analyze_paper_with_debate(key_viewpoint, paper, callback=capturer.callback)
-            
-            # Yield all captured debate events
-            for event in capturer.events:
-                yield {"type": "debate_event", "data": event, "paper_title": paper['title']}
-            
-            relevance = analysis.get('relevance_score', 0)
-            
-            item = {
-                'paper': paper,
-                'analysis': analysis,
-                'codes': code_results.get(paper['title'], [])
-            }
-            
-            if relevance >= 4:
-                candidates_for_deep_read.append(item)
-            else:
-                final_results.append(item)
+            for i, future in enumerate(concurrent.futures.as_completed(future_to_paper)):
+                paper, analysis, events = future.result()
+                
+                msg = f"[{i+1}/{len(papers)}] Screened: {paper['title'][:30]}..."
+                yield {"type": "log", "content": msg}
+                
+                for event in events:
+                    yield {"type": "debate_event", "data": event, "paper_title": paper['title']}
+                
+                relevance = analysis.get('relevance_score', 0)
+                
+                item = {
+                    'paper': paper,
+                    'analysis': analysis,
+                    'codes': code_results.get(paper['title'], [])
+                }
+                
+                if relevance >= 4:
+                    candidates_for_deep_read.append(item)
+                else:
+                    final_results.append(item)
 
-        # Phase 2: Deep Reading
         yield {"type": "log", "content": f"Phase 2: Deep Reading {len(candidates_for_deep_read)} candidates..."}
         
         processed_candidates = []
-        # Use ThreadPoolExecutor but we need to yield updates
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_item = {executor.submit(self._process_pdf_candidate, item): item for item in candidates_for_deep_read}
@@ -162,39 +124,49 @@ class ResearchPipeline:
                 else:
                     yield {"type": "log", "content": f"  -> Failed to extract text for: {item['paper']['title'][:30]}"}
                 
-                # Emit PDF downloaded event
                 if pdf_path and os.path.exists(pdf_path):
                      yield {"type": "pdf_ready", "paper": paper, "pdf_path": pdf_path}
                 
                 processed_candidates.append(item)
 
-        # Phase 3: Full Text Analysis
         yield {"type": "log", "content": "Phase 3: Analyzing Full Texts (Multi-Agent Debate)..."}
-        for item in processed_candidates:
-            if 'full_text' in item:
-                yield {"type": "log", "content": f"  -> Analyzing Full Text: {item['paper']['title'][:30]}..."}
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            def analyze_full(item):
+                events = []
+                def callback(event):
+                    events.append(event)
+                full_analysis = self.orchestrator.analyze_paper_with_debate(key_viewpoint, item['paper'], item.get('full_text'), callback=callback)
+                return item, full_analysis, events
+
+            future_to_item = {executor.submit(analyze_full, item): item for item in processed_candidates if 'full_text' in item}
+            
+            for item in processed_candidates:
+                if 'full_text' not in item:
+                    final_results.append(item)
+
+            for future in concurrent.futures.as_completed(future_to_item):
+                item, full_analysis, events = future.result()
+                yield {"type": "log", "content": f"  -> Analyzed Full Text: {item['paper']['title'][:30]}..."}
                 
-                capturer = EventCapturer()
-                full_analysis = self.orchestrator.analyze_paper_with_debate(key_viewpoint, item['paper'], item['full_text'], callback=capturer.callback)
-                
-                # Yield all captured debate events
-                for event in capturer.events:
+                for event in events:
                     yield {"type": "debate_event", "data": event, "paper_title": item['paper']['title']}
                 
                 item['analysis'] = full_analysis
-            final_results.append(item)
+                final_results.append(item)
 
         final_results.sort(key=lambda x: x['analysis'].get('relevance_score', 0), reverse=True)
 
-        # Phase 4: Synthesis
         yield {"type": "status", "stage": "synthesis", "content": "Global Synthesis & Gap Analysis..."}
         
-        capturer = EventCapturer()
-        synthesis = self.orchestrator.perform_global_synthesis(key_viewpoint, final_results, callback=capturer.callback)
-        for event in capturer.events:
+        events = []
+        def synthesis_callback(event):
+            events.append(event)
+            
+        synthesis = self.orchestrator.perform_global_synthesis(key_viewpoint, final_results, callback=synthesis_callback)
+        for event in events:
              yield {"type": "debate_event", "data": event, "paper_title": "Global Synthesis"}
         
-        # Generate Report
         report_context = f"**Draft Analysis:** {core_contribution}\n\n**Viewpoint:** {key_viewpoint}"
         generate_report(report_context, final_results, self.output_dir, "research_result.md", synthesis)
         
@@ -230,10 +202,10 @@ def generate_report(user_input, results, output_dir, filename="research_result.m
         f.write(f"# Research Report: {user_input}\n\n")
         
         if synthesis:
-            f.write("\n\n## 🧠 Global Synthesis & Strategic Advice\n")
-            f.write(f"### 📊 State of the Art Summary\n{synthesis.get('state_of_art_summary', 'N/A')}\n\n")
-            f.write(f"### 🎯 Critical Gap Analysis\n{synthesis.get('gap_analysis', 'N/A')}\n\n")
-            f.write(f"### 💡 Strategic Recommendations\n{synthesis.get('strategic_recommendations', 'N/A')}\n\n")
+            f.write("\n\n## Global Synthesis & Strategic Advice\n")
+            f.write(f"### State of the Art Summary\n{synthesis.get('state_of_art_summary', 'N/A')}\n\n")
+            f.write(f"### Critical Gap Analysis\n{synthesis.get('gap_analysis', 'N/A')}\n\n")
+            f.write(f"### Strategic Recommendations\n{synthesis.get('strategic_recommendations', 'N/A')}\n\n")
             f.write("---\n\n")
         
         f.write("> **Disclaimer**: This report is generated by an AI system (FindUrCite). "
@@ -242,16 +214,16 @@ def generate_report(user_input, results, output_dir, filename="research_result.m
                 "Please verify with the original papers.\n\n")
 
         headers = [
-            "序号", "竞品/关键 paper 题目", "年份", "Scores (0-10)", "契合度分析", "关键词", 
-            "发表期刊/会议，等级", "作者信息", "单位信息", "细分领域", "链接", "PDF",
-            "解决了什么问题 + 问题数学定义", 
-            "解决了什么瓶颈问题？用的什么方法？", 
-            "方法关键词", "算法流程\n(建议使用伪代码)", 
-            "实验设置\n(数据集, 优越性, 对比方法...)", 
-            "缺陷\n(为我们工作入场铺路)", 
-            "阅读者评价\n(改进点, 文章缺陷, 复现难度等)", 
-            "代码仓库链接",
-            "数据集", "其他", "原文佐证 (Evidence)"
+            "No.", "Paper Title", "Year", "Scores (0-10)", "Match Analysis", "Keywords", 
+            "Venue", "Authors", "Affiliations", "Sub-field", "Link", "PDF",
+            "Problem Definition", 
+            "Methodology", 
+            "Method Keywords", "Algorithm Summary", 
+            "Experiments", 
+            "Limitations", 
+            "Critique", 
+            "Code Repo",
+            "Datasets", "Others", "Evidence"
         ]
         
         f.write("| " + " | ".join([h.replace('\n', '<br>') for h in headers]) + " |\n")
@@ -285,7 +257,7 @@ def generate_report(user_input, results, output_dir, filename="research_result.m
 
             def clean(text):
                 if not isinstance(text, str): return str(text)
-                return text.replace("\n", "<br>").replace("|", "\|")
+                return text.replace("\n", "<br>").replace("|", "\\|")
             
             evidence = a.get('evidence_quotes', [])
             if isinstance(evidence, list):
@@ -325,8 +297,6 @@ def generate_report(user_input, results, output_dir, filename="research_result.m
                 evidence_str
             ]
             f.write("| " + " | ".join(row) + " |\n")
-    
-    # print(f"[Main] Report generated: {filename}")
 
 def main():
     parser = argparse.ArgumentParser(description="FindUrCite - AI Research Assistant")

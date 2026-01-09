@@ -1,25 +1,24 @@
+# Results and Cache
+research_results/
+session_state.json
+.cache/
+*.json
+*.pdf
+*.md
+!README.md
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.DS_Store
-research_result*.md
-test_*.md
-research_report.md
-research_output_*/
-research_outputs/
-pdfs/
-tests/research_output_*/
-downloads/
-analysis_cache.json
-*.md_test
+
+# Environment
 .venv/
 venv/
 env/
 .env
+
+# IDE
 .vscode/
 .idea/
-
-# Logs
-error_log.md
-*.log

@@ -2,7 +2,11 @@ import requests
 import time
 import feedparser
 import urllib.parse
-from concurrent.futures import ThreadPoolExecutor
+import os
+import hashlib
+import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from utils import get_output_dir
 
 class Searcher:
     def __init__(self):
@@ -11,6 +15,30 @@ class Searcher:
         self.headers = {
             "User-Agent": "FindUrCite/1.0 (mailto:user@example.com)"
         }
+        self.cache_dir = os.path.join(get_output_dir(), ".cache")
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir)
+        self.cache_file = os.path.join(self.cache_dir, "search_cache.json")
+        self.cache = self._load_cache()
+
+    def _load_cache(self):
+        if os.path.exists(self.cache_file):
+            try:
+                with open(self.cache_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except:
+                return {}
+        return {}
+
+    def _save_cache(self):
+        try:
+            with open(self.cache_file, 'w', encoding='utf-8') as f:
+                json.dump(self.cache, f, ensure_ascii=False, indent=2)
+        except:
+            pass
+
+    def _get_cache_key(self, query):
+        return hashlib.md5(query.lower().strip().encode('utf-8')).hexdigest()
 
     def search_semantic_scholar(self, query, limit=5, retries=3):
         params = {
@@ -101,6 +129,10 @@ class Searcher:
         return results
 
     def search_all(self, query, limit_per_source=5):
+        cache_key = self._get_cache_key(query)
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
         with ThreadPoolExecutor(max_workers=2) as executor:
             future_ss = executor.submit(self.search_semantic_scholar, query, limit=limit_per_source)
             future_arxiv = executor.submit(self.search_arxiv, query, limit=limit_per_source)
@@ -118,44 +150,35 @@ class Searcher:
                 seen_titles.add(normalized_title)
                 unique_results.append(res)
         
+        self.cache[cache_key] = unique_results
+        self._save_cache()
+        
         return unique_results
 
     def search_multiple_queries(self, queries, limit_per_source=5, keywords_filter=None):
-        """
-        Executes search for multiple queries and applies keyword filtering if provided.
-        Adaptive: If strict filtering returns too few results, it relaxes constraints.
-        keywords_filter: list of strings. If provided, checks if abstract/title contains any of them.
-        """
         seen_titles = set()
-        
-        # Store all candidates before filtering for fallback
         all_candidates = [] 
-
-        # Pre-process keywords for case-insensitive matching
         filter_terms = [k.lower().strip() for k in keywords_filter] if keywords_filter else []
 
-        for q in queries:
-            # Skip empty queries
-            if not q or len(q.strip()) < 3:
-                continue
-                
-            results = self.search_all(q, limit_per_source=limit_per_source)
-            for res in results:
-                normalized_title = res['title'].lower().strip()
-                
-                # Deduplication
-                if normalized_title in seen_titles:
-                    continue
-                
-                # Basic Relevance Filtering (Heuristic)
-                # If abstract is too short, likely metadata error or not useful
-                if not res.get('abstract') or len(res.get('abstract')) < 50:
-                    continue
-                
-                seen_titles.add(normalized_title)
-                all_candidates.append(res)
+        valid_queries = [q for q in queries if q and len(q.strip()) >= 3]
 
-        # Apply Filtering
+        with ThreadPoolExecutor(max_workers=min(5, len(valid_queries) + 1)) as executor:
+            future_to_query = {executor.submit(self.search_all, q, limit_per_source): q for q in valid_queries}
+            
+            for future in as_completed(future_to_query):
+                results = future.result()
+                for res in results:
+                    normalized_title = res['title'].lower().strip()
+                    
+                    if normalized_title in seen_titles:
+                        continue
+                    
+                    if not res.get('abstract') or len(res.get('abstract')) < 50:
+                        continue
+                    
+                    seen_titles.add(normalized_title)
+                    all_candidates.append(res)
+
         filtered_results = []
         
         if filter_terms:
@@ -175,14 +198,10 @@ class Searcher:
         else:
             filtered_results = all_candidates
 
-        # ADAPTIVE LOGIC: If too few results, fill up from all_candidates
         min_results = 5
         if len(filtered_results) < min_results and len(all_candidates) > len(filtered_results):
-            # Find candidates that were rejected
             rejected = [p for p in all_candidates if p not in filtered_results]
             
-            # Sort rejected by citations (if available) as a proxy for quality/relevance probability
-            # Handle 'N/A' or None citations
             def get_citations(p):
                 c = p.get('citations')
                 if isinstance(c, int): return c
@@ -190,13 +209,10 @@ class Searcher:
                 return 0
             
             rejected.sort(key=get_citations, reverse=True)
-            
-            # Fill up to min_results * 2 (give a bit more options)
             needed = (min_results * 2) - len(filtered_results)
-            # Add a note to these fallback papers
             fallback_papers = rejected[:needed]
             for p in fallback_papers:
-                p['adaptive_fallback'] = True # Mark as fallback
+                p['adaptive_fallback'] = True 
             
             filtered_results.extend(fallback_papers)
             
