@@ -21,6 +21,8 @@ class ResearchPipeline:
             
         if not pdf_dir:
             self.pdf_dir = os.path.join(self.output_dir, "pdfs")
+        else:
+            self.pdf_dir = pdf_dir
             
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
@@ -38,7 +40,7 @@ class ResearchPipeline:
         def callback(event):
             events.append(event)
         
-        analysis = self.orchestrator.analyze_paper_with_debate(key_viewpoint, paper, callback=callback)
+        analysis = self.orchestrator.analyze_paper_with_debate(key_viewpoint, paper, callback=callback, searcher=self.searcher)
         return paper, analysis, events
 
     def run(self, user_text):
@@ -80,32 +82,76 @@ class ResearchPipeline:
         final_results = []
         candidates_for_deep_read = []
         
-        yield {"type": "log", "content": "Phase 1: Screening Abstracts..."}
+        yield {"type": "log", "content": "Phase 1: Screening Abstracts (Sequential Processing for Stability)..."}
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_paper = {executor.submit(self._analyze_single_paper, p, key_viewpoint): p for p in papers}
+        # Use a Queue to stream events from the worker thread to the main thread
+        import queue
+        event_queue = queue.Queue()
+        
+        def analyze_wrapper(paper):
+            try:
+                def callback(event):
+                    event_queue.put({"type": "debate_event", "data": event, "paper_title": paper['title']})
+                
+                analysis = self.orchestrator.analyze_paper_with_debate(key_viewpoint, paper, callback=callback, searcher=self.searcher)
+                return paper, analysis
+            except Exception as e:
+                # Log error but don't crash
+                event_queue.put({"type": "log", "content": f"Error analyzing {paper['title'][:20]}: {str(e)}"})
+                return paper, {}
+
+        # We run sequentially (max_workers=1) because local LLMs cannot handle concurrency well.
+        # We also need to consume the queue while the task is running.
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future_to_paper = {executor.submit(analyze_wrapper, p): p for p in papers}
             
-            for i, future in enumerate(concurrent.futures.as_completed(future_to_paper)):
-                paper, analysis, events = future.result()
+            # Monitoring loop: while futures are running, consume the queue
+            # This is a bit tricky with blocking 'as_completed'.
+            # Better approach: Check queue periodically while waiting for results?
+            # Or just use the callback to yield? No, can't yield from thread.
+            # We can use a while loop that checks futures status.
+            
+            pending_futures = list(future_to_paper.keys())
+            while pending_futures:
+                # check for events
+                while not event_queue.empty():
+                    yield event_queue.get()
                 
-                msg = f"[{i+1}/{len(papers)}] Screened: {paper['title'][:30]}..."
-                yield {"type": "log", "content": msg}
+                # Check for completed futures
+                done_futures = [f for f in pending_futures if f.done()]
+                for f in done_futures:
+                    pending_futures.remove(f)
+                    try:
+                        paper, analysis = f.result()
+                        
+                        # Yield completion logs
+                        msg = f"[{len(papers) - len(pending_futures)}/{len(papers)}] Screened: {paper['title'][:30]}..."
+                        yield {"type": "log", "content": msg}
+                        
+                        relevance = analysis.get('relevance_score', 0)
+                        item = {
+                            'paper': paper,
+                            'analysis': analysis,
+                            'codes': code_results.get(paper['title'], [])
+                        }
+                        
+                        yield {"type": "paper_analyzed", "item": item}
+                        
+                        if relevance >= 4:
+                            candidates_for_deep_read.append(item)
+                        else:
+                            final_results.append(item)
+                            
+                    except Exception as e:
+                        yield {"type": "log", "content": f"Critical Error in future: {e}"}
                 
-                for event in events:
-                    yield {"type": "debate_event", "data": event, "paper_title": paper['title']}
-                
-                relevance = analysis.get('relevance_score', 0)
-                
-                item = {
-                    'paper': paper,
-                    'analysis': analysis,
-                    'codes': code_results.get(paper['title'], [])
-                }
-                
-                if relevance >= 4:
-                    candidates_for_deep_read.append(item)
-                else:
-                    final_results.append(item)
+                if pending_futures:
+                    time.sleep(0.1) # Prevent busy loop
+
+            # Flush remaining events
+            while not event_queue.empty():
+                yield event_queue.get()
 
         yield {"type": "log", "content": f"Phase 2: Deep Reading {len(candidates_for_deep_read)} candidates..."}
         
@@ -153,6 +199,7 @@ class ResearchPipeline:
                     yield {"type": "debate_event", "data": event, "paper_title": item['paper']['title']}
                 
                 item['analysis'] = full_analysis
+                yield {"type": "paper_analyzed", "item": item}
                 final_results.append(item)
 
         final_results.sort(key=lambda x: x['analysis'].get('relevance_score', 0), reverse=True)

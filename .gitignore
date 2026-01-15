@@ -1,25 +1,30 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.DS_Store
+# Results and Cache
+research_results/
 research_result*.md
 test_*.md
 research_report.md
 research_output_*/
 research_outputs/
 pdfs/
-tests/research_output_*/
 downloads/
 analysis_cache.json
-*.md_test
+.cache/
+
+# Environment
 .venv/
 venv/
 env/
 .env
+
+# IDE
 .vscode/
 .idea/
 
 # Logs
 error_log.md
 *.log
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store

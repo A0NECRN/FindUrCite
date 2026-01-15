@@ -8,6 +8,11 @@ import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils import get_output_dir
 
+try:
+    from scholarly import scholarly
+except ImportError:
+    scholarly = None
+
 class Searcher:
     def __init__(self):
         self.ss_url = "https://api.semanticscholar.org/graph/v1/paper/search"
@@ -108,7 +113,49 @@ class Searcher:
             return self._process_arxiv_results(feed.entries)
         except Exception:
             return []
+
+    def search_google_scholar(self, query, limit=5):
+        if not scholarly:
+            return []
+
+        results = []
+        try:
+            search_query = scholarly.search_pubs(query)
+            for _ in range(limit):
+                try:
+                    pub = next(search_query)
+                    results.append(self._process_gs_result(pub))
+                except StopIteration:
+                    break
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[Google Scholar Error] {e}")
             
+        return results
+
+    def _process_gs_result(self, pub):
+        bib = pub.get('bib', {})
+        
+        # Handle authors
+        authors = bib.get('author', [])
+        if isinstance(authors, str):
+            authors = [authors]
+            
+        return {
+            'source': 'Google Scholar',
+            'title': bib.get('title', 'Unknown Title'),
+            'abstract': bib.get('abstract', 'Abstract not available.'),
+            'year': bib.get('pub_year', 'N/A'),
+            'citations': pub.get('num_citations', 0),
+            'url': pub.get('pub_url', ''),
+            'openAccessPdf': {'url': pub.get('pub_url', '')} if pub.get('pub_url', '').endswith('.pdf') else None,
+            'venue': bib.get('venue', 'Google Scholar'),
+            'authors': authors,
+            'affiliations': [],
+            'paperId': hashlib.md5(bib.get('title', '').encode('utf-8')).hexdigest()
+        }
+
     def _process_arxiv_results(self, entries):
         results = []
         for entry in entries:
@@ -133,14 +180,20 @@ class Searcher:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        # Use max_workers=3 to accommodate Google Scholar
+        with ThreadPoolExecutor(max_workers=3) as executor:
             future_ss = executor.submit(self.search_semantic_scholar, query, limit=limit_per_source)
             future_arxiv = executor.submit(self.search_arxiv, query, limit=limit_per_source)
+            future_gs = executor.submit(self.search_google_scholar, query, limit=limit_per_source)
             
             ss_results = future_ss.result()
             arxiv_results = future_arxiv.result()
+            try:
+                gs_results = future_gs.result()
+            except Exception:
+                gs_results = []
         
-        all_results = ss_results + arxiv_results
+        all_results = ss_results + arxiv_results + gs_results
         seen_titles = set()
         unique_results = []
         

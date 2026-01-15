@@ -39,12 +39,21 @@ class AdvisorAgent(BaseAgent):
         - If 'scores.relevance' > 6, you MUST demand at least 2 direct quotes as evidence.
         - If the methodology is vague, reject.
         - Be aggressive but fair. Do not let hallucinated details pass.
+        - SCORE ADJUSTMENT: If you disagree with the student's score, you MUST provide a specific integer value in 'score_correction'.
+          - If the paper is irrelevant, set 'score_correction' to < 4.
+          - If the paper is good but over-hyped, set 'score_correction' to 6-7.
+          - If the paper is a perfect match, confirm high score.
+        - INTERROGATION (New):
+          - If you are not satisfied, suspect the student is missing something, OR if the paper seems potentially relevant but lacks evidence, ASK QUESTIONS.
+          - Do NOT just reject if a simple clarification could save the paper.
+          - List specific questions in the 'questions' field that the student needs to answer (possibly by searching more).
         
         Output JSON:
         {{
             "is_approved": boolean,
             "critique": "Specific, harsh, evidence-based feedback focusing on {focus_instruction}...",
-            "score_correction": int or null (If you disagree with the 'relevance' score, provide your corrected integer value 0-10. Otherwise null)
+            "score_correction": int or null (If you disagree with the 'relevance' score, provide your corrected integer value 0-10. Otherwise null),
+            "questions": ["Question 1", "Question 2"] (Optional: List of questions for the student to investigate further)
         }}
         """
         

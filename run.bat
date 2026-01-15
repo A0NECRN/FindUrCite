@@ -1,5 +1,9 @@
 @echo off
 setlocal EnableDelayedExpansion
+chcp 65001 >nul
+
+:: Ensure critical system paths are in PATH
+set "PATH=%PATH%;%SystemRoot%\System32;%SystemRoot%\System32\WindowsPowerShell\v1.0"
 
 title FindUrCite Launcher
 cd /d "%~dp0"
@@ -19,15 +23,15 @@ if %errorlevel% neq 0 (
 
 :: 2. Setup Virtual Environment
 echo [2/6] Checking Virtual Environment...
-if not exist "venv" (
-    echo [INFO] Creating virtual environment...
-    python -m venv venv
-    if !errorlevel! neq 0 (
-        echo [ERROR] Failed to create venv.
-        pause
-        exit /b
-    )
+if exist "venv" goto :venv_exists
+echo [INFO] Creating virtual environment...
+python -m venv venv
+if !errorlevel! neq 0 (
+    echo [ERROR] Failed to create venv.
+    pause
+    exit /b
 )
+:venv_exists
 
 echo [INFO] Activating virtual environment...
 call venv\Scripts\activate
@@ -45,34 +49,64 @@ if %errorlevel% neq 0 (
 :: 4. Check & Install Ollama
 echo [4/6] Checking Ollama...
 where ollama >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [WARN] Ollama not found.
-    
-    echo [INFO] Attempting to install via Winget...
-    winget install -e --id Ollama.Ollama --accept-source-agreements --accept-package-agreements
-    
-    if !errorlevel! neq 0 (
-        echo [WARN] Winget installation failed. Attempting direct download...
-        echo [INFO] Downloading OllamaSetup.exe...
-        powershell -Command "Invoke-WebRequest -Uri 'https://ollama.com/download/OllamaSetup.exe' -OutFile 'OllamaSetup.exe'"
-        
-        if exist "OllamaSetup.exe" (
-             echo [INFO] Installer downloaded. Launching...
-             echo [INFO] Please complete the installation in the new window.
-             start /wait OllamaSetup.exe
-             del OllamaSetup.exe
-        ) else (
-             echo [ERROR] Failed to download Ollama. Please install manually from https://ollama.com/
-             pause
-             exit /b
-        )
-    )
-    
-    echo [INFO] Ollama installed. 
-    echo [IMPORTANT] Please RESTART this script (close and reopen) to update system PATH.
-    pause
-    exit /b
+if %errorlevel% equ 0 goto :ollama_installed
+
+:: Check common install locations
+set FOUND_OLLAMA=0
+if exist "%LOCALAPPDATA%\Programs\Ollama\ollama.exe" (
+    echo [INFO] Found Ollama in AppData. Adding to PATH...
+    set "PATH=%PATH%;%LOCALAPPDATA%\Programs\Ollama"
+    set FOUND_OLLAMA=1
 )
+if !FOUND_OLLAMA! equ 1 goto :ollama_installed
+
+echo [WARN] Ollama not found in PATH.
+
+:: Try to find PowerShell
+set "PS_CMD=powershell"
+where powershell >nul 2>&1
+if %errorlevel% neq 0 (
+    if exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
+        set "PS_CMD=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+    )
+)
+
+echo [INFO] Attempting to install via Winget...
+winget install -e --id Ollama.Ollama --accept-source-agreements --accept-package-agreements >nul 2>&1
+
+:: Check if winget worked (it might not be in path or failed)
+where ollama >nul 2>&1
+if %errorlevel% equ 0 goto :ollama_installed
+
+echo [WARN] Winget installation failed or not available. Attempting direct download...
+echo [INFO] Downloading OllamaSetup.exe...
+
+!PS_CMD! -Command "Invoke-WebRequest -Uri 'https://ollama.com/download/OllamaSetup.exe' -OutFile 'OllamaSetup.exe'"
+
+if not exist "OllamaSetup.exe" (
+     echo [ERROR] Failed to download Ollama.
+     echo [ERROR] Please install manually from https://ollama.com/
+     pause
+     exit /b
+)
+
+echo [INFO] Installer downloaded. Launching...
+echo [INFO] Please complete the installation in the new window.
+start /wait OllamaSetup.exe
+del OllamaSetup.exe
+goto :ollama_check_again
+
+:ollama_check_again
+echo [INFO] Checking Ollama installation again...
+where ollama >nul 2>&1
+if %errorlevel% equ 0 goto :ollama_installed
+
+echo [IMPORTANT] Please RESTART this script (close and reopen) to update system PATH.
+pause
+exit /b
+
+:ollama_installed
+echo [INFO] Ollama is ready.
 
 :: 5. Model Selection & Setup
 echo [5/6] Model Selection
@@ -85,16 +119,28 @@ echo 4. DeepSeek R1 (8B) - [Reasoning+] Stronger logic, 12GB+ RAM/VRAM
 echo ---------------------------------------------------
 set /p model_choice="Enter choice (1-4) [Default: 1]: "
 
-if "%model_choice%"=="2" (
-    set MODEL_NAME=qwen2.5:14b
-) else if "%model_choice%"=="3" (
-    set MODEL_NAME=deepseek-r1:7b
-) else if "%model_choice%"=="4" (
-    set MODEL_NAME=deepseek-r1:8b
-) else (
-    set MODEL_NAME=qwen2.5:7b
-)
+if "%model_choice%"=="2" goto set_qwen14
+if "%model_choice%"=="3" goto set_ds7
+if "%model_choice%"=="4" goto set_ds8
+goto set_default
 
+:set_qwen14
+set MODEL_NAME=qwen2.5:14b
+goto model_selected
+
+:set_ds7
+set MODEL_NAME=deepseek-r1:7b
+goto model_selected
+
+:set_ds8
+set MODEL_NAME=deepseek-r1:8b
+goto model_selected
+
+:set_default
+set MODEL_NAME=qwen2.5:7b
+goto model_selected
+
+:model_selected
 echo [INFO] Selected Model: !MODEL_NAME!
 
 :: Check if Ollama service is responsive
@@ -103,28 +149,29 @@ if %errorlevel% neq 0 (
     echo [INFO] Ollama service is not running. Starting background service...
     start /B ollama serve
     echo [INFO] Waiting for Ollama to initialize...
-    timeout /t 10 >nul
+    ping 127.0.0.1 -n 11 >nul
 )
 
 :: Check for model
-ollama list | findstr "!MODEL_NAME!" >nul
-if %errorlevel% neq 0 (
-    echo [INFO] Model !MODEL_NAME! not found. Downloading...
-    echo [INFO] This process depends on your internet speed. Please wait...
-    ollama pull !MODEL_NAME!
-    if !errorlevel! neq 0 (
-        echo [ERROR] Failed to pull model. Please check your internet connection.
-        pause
-        exit /b
-    )
-) else (
-    echo [INFO] Model !MODEL_NAME! is ready.
+ollama list | %SystemRoot%\System32\findstr.exe "!MODEL_NAME!" >nul
+if %errorlevel% equ 0 goto :model_ready
+
+echo [INFO] Model !MODEL_NAME! not found. Downloading...
+echo [INFO] This process depends on your internet speed. Please wait...
+ollama pull !MODEL_NAME!
+if !errorlevel! neq 0 (
+    echo [ERROR] Failed to pull model. Please check your internet connection.
+    pause
+    exit /b
 )
+
+:model_ready
+echo [INFO] Model !MODEL_NAME! is ready.
 
 :: 6. Start Web App
 echo [6/6] Starting FindUrCite Web App...
 echo [INFO] Launching Streamlit...
 
-streamlit run src/web_app.py
+streamlit run src/web_app.py --browser.gatherUsageStats false
 
 pause

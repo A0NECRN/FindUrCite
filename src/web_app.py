@@ -5,9 +5,12 @@ import time
 import json
 from utils import get_output_dir, save_json, load_json
 
+import shutil
+
 sys.path.append(os.path.dirname(__file__))
 
 from main import ResearchPipeline
+from cache import AnalysisCache
 
 st.set_page_config(
     page_title="FindUrCite AI",
@@ -18,40 +21,107 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+    /* Global Styles */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Sidebar Styling */
+    [data-testid="stSidebar"] {
+        background-color: #f8f9fa;
+        border-right: 1px solid #e9ecef;
+    }
+    
+    /* Card Styling */
+    .stExpander {
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 0.5rem;
+    }
+    
+    .stExpander > details > summary {
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    /* Chat Messages */
     .chat-message {
         padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1rem; display: flex
     }
     .chat-message.user {
-        background-color: #2b313e
+        background-color: #eef2ff;
+        border: 1px solid #c7d2fe;
     }
     .chat-message.bot {
-        background-color: #475063
+        background-color: #f3f4f6;
+        border: 1px solid #e5e7eb;
     }
     .chat-message .avatar {
-      width: 20%;
+      width: 45px; height: 45px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; background: white; border: 1px solid #ddd;
+      margin-right: 15px;
     }
-    .chat-message .message {
-      width: 80%;
-    }
-    h1, h2, h3 {
-        color: #0e1117;
-    }
+    
+    /* Buttons */
     .stButton>button {
-        width: 100%;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s;
     }
+    .stButton>button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    /* Paper Context Highlight */
     .highlight-paper {
-        border-left: 5px solid #FF4B4B;
-        padding-left: 10px;
-        margin-top: 10px;
-        margin-bottom: 10px;
-        background-color: #f0f2f6;
-        color: #31333F;
+        border-left: 4px solid #6366f1;
+        padding: 10px 15px;
+        margin: 10px 0;
+        background-color: #f8fafc;
+        border-radius: 0 8px 8px 0;
+        color: #475569;
         font-size: 0.9em;
     }
+    
+    /* Status Bar */
+    .stProgress > div > div > div > div {
+        background-color: #4f46e5;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 4px;
+        padding: 4px 16px;
+        background-color: white;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #eef2ff;
+        color: #4f46e5;
+        font-weight: 600;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
-SESSION_FILE = os.path.join(get_output_dir(), "session_state.json")
+def get_project_root_dir():
+    # Use the research_results directory as the root for all projects
+    return get_output_dir()
+
+def get_session_file():
+    # Helper to get the session file path based on current project
+    project_dir = st.session_state.get("current_project_dir", os.path.join(get_project_root_dir(), "Default_Project"))
+    if not os.path.exists(project_dir):
+        os.makedirs(project_dir)
+    return os.path.join(project_dir, "session_state.json")
 
 def save_session():
     state = {
@@ -62,13 +132,24 @@ def save_session():
         "progress": st.session_state.get("progress", 0),
         "user_input": st.session_state.get("user_input_val", "")
     }
-    save_json(state, SESSION_FILE)
+    # Ensure paper status is saved
+    for p in st.session_state.papers:
+        if 'status' not in p:
+            p['status'] = 'inbox' # Default status
+            
+    save_json(state, get_session_file())
 
 def load_session_state():
-    data = load_json(SESSION_FILE)
+    session_file = get_session_file()
+    data = load_json(session_file)
     if data:
         st.session_state.messages = data.get("messages", [])
         st.session_state.papers = data.get("papers", [])
+        # Backfill status if missing
+        for p in st.session_state.papers:
+            if 'status' not in p:
+                p['status'] = 'inbox'
+                
         st.session_state.logs = data.get("logs", [])
         st.session_state.status = data.get("status", "")
         st.session_state.progress = data.get("progress", 0)
@@ -86,7 +167,91 @@ if "status" not in st.session_state:
 if "progress" not in st.session_state:
     st.session_state.progress = 0
 
-last_input = load_session_state() if "user_input_val" not in st.session_state else st.session_state.get("user_input_val", "")
+# last_input will be loaded after project selection
+
+
+# --- Helper Functions ---
+def update_paper_status(paper_id, new_status, useful_type=None):
+    for p in st.session_state.papers:
+        if p['paper']['paperId'] == paper_id:
+            p['status'] = new_status
+            if useful_type:
+                p['useful_type'] = useful_type
+            save_session()
+            st.rerun()
+            break
+
+def render_paper_card(item, mode="inbox", read_only=False):
+    paper = item['paper']
+    paper_id = paper.get('paperId', str(hash(paper['title']))) # Fallback ID
+    
+    with st.expander(f"📄 {paper['title'][:40]}...", expanded=False):
+        st.markdown(f"**Year:** {paper.get('year')} | **Venue:** {paper.get('venue')}")
+        st.markdown(f"**Authors:** {', '.join(paper.get('authors', [])[:2])}")
+        
+        # PDF Download
+        pdf_path = item.get('pdf_path')
+        if pdf_path and os.path.exists(pdf_path):
+            with open(pdf_path, "rb") as f:
+                st.download_button("📥 PDF", f, file_name=os.path.basename(pdf_path), key=f"dl_{paper_id}_{time.time()}")
+        elif paper.get('openAccessPdf'):
+            url = paper.get('openAccessPdf', {}).get('url')
+            if url:
+                st.markdown(f"[🌐 Open PDF]({url})")
+        
+        # Analysis Score
+        if 'analysis' in item:
+            score = item['analysis'].get('relevance_score', 0)
+            st.markdown(f"**Score:** {score}/10")
+
+        st.divider()
+        
+        # Action Buttons
+        # Info sections should be visible even in read_only mode, but action buttons hidden
+        col_a, col_b = st.columns(2)
+        
+        if mode == "inbox":
+            # Show Reasoning/Critique
+            if 'analysis' in item:
+                analysis = item['analysis']
+                with st.expander("🧐 Why this paper?", expanded=True):
+                    if analysis.get('match_reasoning'):
+                        st.markdown(f"**Match:** {analysis['match_reasoning']}")
+                    if analysis.get('defense'):
+                        st.markdown(f"**Defense:** {analysis['defense']}")
+            
+            if not read_only:
+                with col_a:
+                    useful_type = st.selectbox("Type", ["Support", "Technique", "Benchmark"], key=f"type_{paper_id}", label_visibility="collapsed")
+                    if st.button("✅ Keep", key=f"keep_{paper_id}"):
+                        update_paper_status(paper_id, "useful", useful_type)
+                with col_b:
+                    if st.button("🗑️ Reject", key=f"rej_{paper_id}"):
+                        update_paper_status(paper_id, "rejected")
+        
+        elif mode == "useful":
+            st.success(f"Type: {item.get('useful_type', 'General')}")
+            if 'analysis' in item:
+                    with st.expander("💡 Key Contribution", expanded=False):
+                        st.markdown(item['analysis'].get('match_reasoning', ''))
+            
+            if not read_only:
+                if st.button("⏪ Move to Inbox", key=f"back_{paper_id}"):
+                    update_paper_status(paper_id, "inbox")
+                
+        elif mode == "rejected":
+            st.error("Rejected / 已驳回")
+            if 'analysis' in item:
+                    with st.expander("❌ Rejection Reason / 驳回原因", expanded=True):
+                        critique = item['analysis'].get('critique', '')
+                        if not critique:
+                                # Try to find critique in debate events? simplified: just show low score reason
+                                critique = "Low relevance score."
+                        st.markdown(critique)
+
+            if not read_only:
+                if st.button("⏪ Move to Inbox", key=f"back_rej_{paper_id}"):
+                    update_paper_status(paper_id, "inbox")
 
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/000000/student-center.png", width=80)
@@ -95,10 +260,105 @@ with st.sidebar:
     
     st.divider()
     
-    model_name = st.text_input("Ollama Model", value="qwen2.5:7b")
+    # --- Project Management ---
+    st.markdown("### 📂 Project Management")
+    
+    root_dir = get_project_root_dir()
+    if not os.path.exists(root_dir): os.makedirs(root_dir)
+    
+    # Filter only directories
+    projects = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
+    if not projects:
+        projects = ["Default_Project"]
+        if not os.path.exists(os.path.join(root_dir, "Default_Project")):
+            os.makedirs(os.path.join(root_dir, "Default_Project"))
+            
+    if "current_project_name" not in st.session_state:
+        st.session_state.current_project_name = projects[0]
+        
+    # Ensure current project is in list
+    if st.session_state.current_project_name not in projects:
+         st.session_state.current_project_name = projects[0]
+
+    selected_project = st.selectbox("Current Project", projects, index=projects.index(st.session_state.current_project_name))
+    
+    with st.expander("➕ Create New Project"):
+        new_proj_name = st.text_input("New Project Name", placeholder="MyNewResearch", help="Create a separate workspace for a different research topic. Keeps data isolated.")
+        if st.button("Create Project"):
+            if new_proj_name and new_proj_name not in projects:
+                # Sanitize name
+                safe_name = "".join([c for c in new_proj_name if c.isalnum() or c in (' ', '_', '-')]).strip()
+                if safe_name:
+                    os.makedirs(os.path.join(root_dir, safe_name))
+                    st.session_state.current_project_name = safe_name
+                    st.success(f"Created {safe_name}!")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("Invalid name")
+            elif new_proj_name in projects:
+                st.error("Project exists!")
+
+    # Delete Project Logic
+    if st.session_state.current_project_name != "Default_Project":
+        with st.expander("🗑️ Delete Project"):
+            st.warning(f"Are you sure you want to delete '{st.session_state.current_project_name}'? This action cannot be undone.")
+            if st.button("Confirm Delete", type="primary"):
+                try:
+                    shutil.rmtree(os.path.join(root_dir, st.session_state.current_project_name))
+                    st.session_state.current_project_name = "Default_Project"
+                    st.toast("Project deleted successfully!", icon="🗑️")
+                    time.sleep(1)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error deleting project: {e}")
+
+    # Switch Project Logic
+    if selected_project != st.session_state.current_project_name:
+        st.session_state.current_project_name = selected_project
+        # Reset State for new project
+        st.session_state.messages = []
+        st.session_state.papers = []
+        st.session_state.logs = []
+        st.session_state.status = ""
+        st.session_state.progress = 0
+        if "user_input_val" in st.session_state: del st.session_state.user_input_val
+        st.rerun()
+
+    # Set Current Project Dir in Session
+    st.session_state.current_project_dir = os.path.join(root_dir, st.session_state.current_project_name)
+    
+    # Load session state for the selected project
+    # We do this here to ensure 'last_input' is available for the main area
+    last_input = load_session_state() if "user_input_val" not in st.session_state else st.session_state.get("user_input_val", "")
+
+    st.divider()
+    
+    # Load model name from environment variable (set by run.bat) or default
+    default_model = os.environ.get("MODEL_NAME", "qwen2.5:7b")
+    model_name = st.text_input("Ollama Model", value=default_model)
     
     st.subheader("Configuration")
-    base_output_dir = st.text_input("Output Dir", value=get_output_dir())
+    # Base output dir is now the project dir, but we allow user to see it (read-only mostly)
+    base_output_dir = st.text_input("Project Dir", value=st.session_state.current_project_dir, disabled=True)
+    
+    col_c1, col_c2 = st.columns(2)
+    with col_c1:
+        if st.button("🧹 Clear Cache"):
+            AnalysisCache().clear()
+            st.toast("Cache cleared successfully!", icon="🧹")
+            time.sleep(0.5)
+            st.rerun()
+            
+    with col_c2:
+        if st.button("🔄 New Research", help="Clear current results and start over within this project."):
+             st.session_state.messages = []
+             st.session_state.papers = []
+             st.session_state.logs = []
+             st.session_state.status = ""
+             st.session_state.progress = 0
+             save_session()
+             st.rerun()
     
     st.divider()
     st.markdown("### 📊 Status")
@@ -109,8 +369,37 @@ with st.sidebar:
     progress_bar = st.progress(st.session_state.progress)
     
     st.divider()
-    st.markdown("### 📚 Found Papers")
-    papers_container = st.container()
+    st.markdown("### 📚 Literature Manager / 文献管理")
+    
+    lit_manager_placeholder = st.empty()
+
+    def render_literature_manager(placeholder, read_only=False):
+        with placeholder.container():
+            # Categorize papers
+            inbox_papers = [p for p in st.session_state.papers if p.get('status', 'inbox') == 'inbox']
+            useful_papers = [p for p in st.session_state.papers if p.get('status') == 'useful']
+            rejected_papers = [p for p in st.session_state.papers if p.get('status') == 'rejected']
+            
+            tab_inbox, tab_useful, tab_rejected = st.tabs([
+                f"📥 Inbox / 收件箱 ({len(inbox_papers)})", 
+                f"✅ Useful / 有用 ({len(useful_papers)})", 
+                f"🗑️ Rejected / 已驳回 ({len(rejected_papers)})"
+            ])
+            
+            with tab_inbox:
+                for p in inbox_papers:
+                    render_paper_card(p, "inbox", read_only)
+                    
+            with tab_useful:
+                for p in useful_papers:
+                    render_paper_card(p, "useful", read_only)
+                    
+            with tab_rejected:
+                for p in rejected_papers:
+                    render_paper_card(p, "rejected", read_only)
+    
+    # Initial render
+    render_literature_manager(lit_manager_placeholder, read_only=False)
 
 col1, col2 = st.columns([1, 2])
 
@@ -138,29 +427,7 @@ with col2:
                     st.markdown(f"<div class='highlight-paper'>📄 <b>Context:</b> {msg['paper_context']}</div>", unsafe_allow_html=True)
                 st.markdown(msg["content"])
 
-def render_paper_card(paper, pdf_path=None):
-    with papers_container:
-        with st.expander(f"📄 {paper['title'][:40]}...", expanded=False):
-            st.markdown(f"**Year:** {paper.get('year')} | **Venue:** {paper.get('venue')}")
-            st.markdown(f"**Authors:** {', '.join(paper.get('authors', [])[:2])}")
-            if pdf_path and os.path.exists(pdf_path):
-                with open(pdf_path, "rb") as f:
-                    st.download_button("📥 Download PDF", f, file_name=os.path.basename(pdf_path), key=f"dl_{paper['paperId']}_{time.time()}")
-            elif paper.get('openAccessPdf'):
-                url = paper.get('openAccessPdf', {}).get('url')
-                if url and url.startswith("http"):
-                    st.markdown(f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;"><button style="background-color: transparent; border: 1px solid #4CAF50; color: #4CAF50; padding: 5px 10px; border-radius: 5px; cursor: pointer;">🌐 Open PDF Link</button></a>', unsafe_allow_html=True)
-                else:
-                    st.caption("PDF Link Unavailable")
-            elif paper.get('url'):
-                url = paper.get('url')
-                if url and url.startswith("http"):
-                    st.markdown(f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;"><button style="background-color: transparent; border: 1px solid #2196F3; color: #2196F3; padding: 5px 10px; border-radius: 5px; cursor: pointer;">🔗 View Paper</button></a>', unsafe_allow_html=True)
-                else:
-                    st.caption("Paper Link Unavailable")
-
-for p in st.session_state.papers:
-    render_paper_card(p['paper'], p.get('pdf_path'))
+# Removed old render_paper_card and loop as it is now inside sidebar logic above
 
 if start_btn and user_input:
     st.session_state.messages = []
@@ -202,9 +469,47 @@ if start_btn and user_input:
                 progress_bar.progress(progress_val)
 
             elif event['type'] == 'paper_found':
-                paper_obj = {'paper': event['paper']}
+                paper_obj = {'paper': event['paper'], 'status': 'inbox'}
                 st.session_state.papers.append(paper_obj)
-                render_paper_card(event['paper'])
+                # Update sidebar (read only during search to avoid key collision/rerun issues)
+                render_literature_manager(lit_manager_placeholder, read_only=True)
+            
+            elif event['type'] == 'paper_analyzed':
+                item = event['item']
+                found = False
+                for p in st.session_state.papers:
+                    if p['paper'].get('paperId') == item['paper'].get('paperId') or p['paper'].get('title') == item['paper'].get('title'):
+                        p['analysis'] = item['analysis']
+                        if 'codes' in item: p['codes'] = item['codes']
+                        
+                        score = item['analysis'].get('relevance_score', 0)
+                        
+                        # Fix: If score is high (approved), move to useful if not already there
+                        # But user might want to manually review.
+                        # Let's keep it in Inbox but sort/highlight?
+                        # Or move to useful if strictly approved?
+                        # For now, let's auto-reject low scores, and keep high scores in inbox but updated.
+                        
+                        if score < 4 and p['status'] == 'inbox':
+                            p['status'] = 'rejected'
+                        elif score >= 7 and p['status'] == 'inbox':
+                            p['status'] = 'useful'
+                        # Ensure 'status' persists if it was manually moved
+                        
+                        found = True
+                        break
+                if not found:
+                     paper_obj = item
+                     if item['analysis'].get('relevance_score', 0) < 4:
+                        paper_obj['status'] = 'rejected'
+                     elif item['analysis'].get('relevance_score', 0) >= 7:
+                        paper_obj['status'] = 'useful'
+                     else:
+                        paper_obj['status'] = 'inbox'
+                     st.session_state.papers.append(paper_obj)
+                
+                # Update sidebar
+                render_literature_manager(lit_manager_placeholder, read_only=True)
             
             elif event['type'] == 'pdf_ready':
                 log_msg = f"[{time.strftime('%H:%M:%S')}] PDF Downloaded: {event['paper']['title'][:30]}..."
@@ -264,6 +569,9 @@ if start_btn and user_input:
                 st.error(event['content'])
             
             save_session()
+        
+        # Final render with interactivity enabled
+        render_literature_manager(lit_manager_placeholder, read_only=False)
                 
     except Exception as e:
         st.error(f"An error occurred: {e}")

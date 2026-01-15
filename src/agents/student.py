@@ -51,20 +51,25 @@ class StudentAgent(BaseAgent):
         print(f"[StudentAgent] Analyze Initial Failed. Response type: {type(response)}")
         return {}
 
-    def revise_analysis(self, original_analysis, advisor_critique, paper_content):
+    def revise_analysis(self, original_analysis, advisor_critique, paper_content, new_evidence=None):
+        evidence_text = ""
+        if new_evidence:
+            evidence_text = f"\nNew Evidence from Search:\n{new_evidence}\n"
+            
         prompt = f"""
-        You are a research student. Your advisor has critiqued your initial analysis.
+        You are a research student. Your advisor has critiqued your initial analysis and asked questions.
         
         Original Analysis: {json.dumps(original_analysis)}
         Advisor Critique: {advisor_critique}
+        {evidence_text}
         Paper Content Fragment: {paper_content[:10000]}
         
-        Task: Revise the analysis to address the critique.
-        Step 1: REFLECTION. Think deeply about the critique. Is the advisor right? Did you overclaim relevance? Did you miss a fatal flaw?
+        Task: Revise the analysis to address the critique and new evidence.
+        Step 1: REFLECTION. Think deeply about the critique and any new findings.
         Step 2: REVISION. Update the fields based on your reflection.
         
         Guidelines:
-        - You MUST output a 'defense' field explaining your response to the critique.
+        - You MUST output a 'defense' field explaining your response to the critique and how new evidence supports/refutes it.
         - If the advisor points out that the paper is IRRELEVANT or lacks evidence, you MUST Lower the 'scores.relevance' (e.g., to 2 or 3).
         - Update other scores ('innovation', 'reliability', 'potential') if needed.
         - Recalculate 'scores.total'.
@@ -82,6 +87,26 @@ class StudentAgent(BaseAgent):
         print(f"[StudentAgent] Revise Analysis Failed. Response type: {type(response)}")
         return original_analysis
 
+    def generate_investigation_queries(self, advisor_questions, context):
+        prompt = f"""
+        You are a research student. Your advisor has asked challenging questions about your analysis.
+        You need to search for external evidence to answer them.
+        
+        Context: {context}
+        Advisor Questions: {advisor_questions}
+        
+        Task: Generate 3 specific search queries to find answers or evidence.
+        
+        Output JSON:
+        {{
+            "queries": ["query 1", "query 2", "query 3"]
+        }}
+        """
+        response = self.chat([{'role': 'user', 'content': prompt}])
+        if response and isinstance(response, dict):
+            return response.get('queries', [])
+        return []
+
     def analyze_user_input(self, text):
         prompt = f"""
         Analyze this research idea using Chain of Thought (CoT).
@@ -91,84 +116,30 @@ class StudentAgent(BaseAgent):
         Step 1: Deconstruct the user's input. Identify the core problem, proposed solution, and key innovation claims.
         Step 2: Determine the specific sub-field and technical keywords.
         Step 3: Formulate a 'Key Viewpoint' that encapsulates the user's unique stance or contribution.
-        Step 4: Generate search queries. 
+        Step 4: Generate a comprehensive search strategy using multiple methods:
+           - Keyword Extraction: Extract 5-10 precise technical keywords (e.g., "Transformer", "Contrastive Learning").
+           - Boolean Combinations: Create 3 complex boolean queries (e.g., "('Large Language Model' OR 'LLM') AND 'Hallucination'").
+           - Semantic Queries: Create 3 natural language questions a researcher would ask.
+           - Exact Match: Identify any specific phrases that should be searched in quotes.
+
            - IMPORTANT: All search queries MUST be in ENGLISH, regardless of the input language.
-           - First, identify the <Domain>, <Methodology>, and <Specific Problem> from the input.
-           - Then, generate 5 diverse queries using these components:
-           - Query 1: Intersection of <Methodology> and <Domain>.
-           - Query 2: Specific technical approach or algorithm applied to the <Specific Problem>.
-           - Query 3: Problem-solving focus (e.g., "Improving <Metric> in <Domain> using <Methodology>").
-           - Query 4: Search for similar existing systems or State-of-the-Art (SOTA) in this niche.
-           - Query 5: A distinct aspect, alternative phrasing, or specific sub-task keyword.
         
-        Step 5: Extract 3-5 critical English keywords for filtering. These should be single words or short phrases representing the core technical concepts.
+        Output JSON only.
         
-        Constraint: Do NOT introduce unrelated concepts, specific languages (e.g. Arabic, Chinese), or domains unless explicitly mentioned in the input.
-        
-        Output JSON:
-        {{
-            "cot_reasoning": "Step-by-step reasoning...",
-            "core_contribution": "Concise summary of the user's contribution...",
-            "key_viewpoint": "A single sentence describing the unique angle...",
-            "search_queries": ["query1", "query2", "query3", "query4", "query5"],
-            "english_keywords": ["keyword1", "keyword2", "keyword3"]
-        }}
+        Required Fields:
+        - core_contribution: Summary of the user's idea.
+        - sub_field: The academic sub-field.
+        - key_viewpoint: The angle to evaluate papers against.
+        - search_queries: [List of all generated queries combined]
+        - english_keywords: [List of English keywords for filtering]
         """
+        
         response = self.chat([{'role': 'user', 'content': prompt}])
         if response and isinstance(response, dict):
             return response
             
-        print(f"[StudentAgent] Analyze User Input Failed. Response type: {type(response)}")
         return {
-            "core_contribution": text[:100],
-            "search_queries": [text[:50]],
-            "key_viewpoint": text[:100],
+            "core_contribution": "Analysis failed",
+            "search_queries": [text],
             "english_keywords": []
-        }
-
-    def synthesize_literature(self, user_context, analyzed_papers, previous_synthesis=None, critique=None):
-        papers_summary = []
-        for p in analyzed_papers:
-            papers_summary.append(f"- {p['paper']['title']}: {p['analysis'].get('problem_def', 'N/A')} | Method: {p['analysis'].get('methodology', 'N/A')}")
-        
-        papers_text = "\n".join(papers_summary)
-        
-        context_prompt = ""
-        if previous_synthesis and critique:
-            context_prompt = f"""
-            Previous Synthesis: {json.dumps(previous_synthesis)}
-            Advisor Critique: {critique}
-            Task: Revise the synthesis to address the critique. Be more critical and specific.
-            """
-        else:
-            context_prompt = "Task: Create a comprehensive literature synthesis. Focus on CONTRASTING the user's idea with existing work."
-
-        prompt = f"""
-        You are a research student. Synthesize the findings from these papers relative to the user's research idea.
-        
-        User Context: {user_context}
-        Analyzed Papers:
-        {papers_text}
-        
-        {context_prompt}
-        
-        Constraint: Strictly base your summary on the provided 'Analyzed Papers'. Do NOT hallucinate topics, languages (e.g. Arabic), or domains not present in the papers or user context.
-        
-        Output JSON:
-        {{
-            "state_of_art_summary": "Summary of what existing solutions do, highlighting their limitations...",
-            "gap_analysis": "Precise analysis of why existing work fails to solve the user's specific problem...",
-            "strategic_recommendations": "3-5 actionable suggestions (e.g. 'Adopt X metric from Paper A but apply it to Y domain')..."
-        }}
-        """
-        
-        response = self.chat([{'role': 'user', 'content': prompt}])
-        if response and isinstance(response, dict):
-            return response
-            
-        print(f"[StudentAgent] Synthesis Failed. Response type: {type(response)}")
-        return {
-            "state_of_art_summary": "Failed to synthesize.",
-            "gap_analysis": "N/A",
-            "strategic_recommendations": "N/A"
         }

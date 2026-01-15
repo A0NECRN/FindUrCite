@@ -1,0 +1,11 @@
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true
+port = 8501
+address = "localhost"
+
+[theme]
+base = "light"
+primaryColor = "#FF4B4B"
